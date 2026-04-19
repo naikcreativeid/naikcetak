@@ -153,7 +153,7 @@ const INIT_FORM = {
   jumlahDiperlukan: '',
 };
 
-export default function PotongKertas({ user, onCarryOver, onNavigate }) {
+export default function PotongKertas({ user, planHook, onCarryOver, onNavigate, onUpgradeClick }) {
   const [form, setForm]         = useState(INIT_FORM);
   const [result, setResult]     = useState(null);
   const [masterKertas, setMK]   = useState([]);
@@ -250,6 +250,8 @@ export default function PotongKertas({ user, onCarryOver, onNavigate }) {
         });
       } catch { /* fallback silent — sudah tersimpan lokal */ }
     }
+    // Track usage & refresh counter
+    if (user && planHook) await planHook.consumeUsage('potong_kertas');
     setToast({ msg: user ? 'Tersimpan ke cloud ☁' : 'Tersimpan (lokal)', type: 'success' });
   };
 
@@ -282,6 +284,38 @@ export default function PotongKertas({ user, onCarryOver, onNavigate }) {
         <h1 className="text-xl font-black text-zinc-900">Potong Kertas</h1>
         <p className="text-sm text-zinc-500 mt-0.5">Kalkulator pemotongan kertas profesional dengan visualisasi grid real-time</p>
       </div>
+
+      {/* Usage limit banner */}
+      {planHook && !planHook.withinLimit('potong_kertas') && (
+        <div className="mb-4 flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <div>
+            <p className="text-sm font-bold text-amber-800">Batas penggunaan bulanan tercapai</p>
+            <p className="text-xs text-amber-600 mt-0.5">
+              Upgrade ke Pro untuk penggunaan tanpa batas.
+            </p>
+          </div>
+          <button onClick={onUpgradeClick}
+            className="shrink-0 text-xs font-bold bg-amber-600 text-white px-3 py-1.5 rounded-lg hover:bg-amber-700 transition-colors">
+            Upgrade
+          </button>
+        </div>
+      )}
+      {planHook && planHook.withinLimit('potong_kertas') && planHook.plan === 'starter' && (
+        (() => {
+          const rem = planHook.remainingUsage('potong_kertas');
+          return rem <= 3 ? (
+            <div className="mb-4 flex items-center justify-between gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+              <p className="text-xs text-blue-700">
+                Sisa <strong>{rem}x</strong> penggunaan bulan ini (Starter).
+              </p>
+              <button onClick={onUpgradeClick}
+                className="shrink-0 text-xs font-bold text-blue-600 hover:underline">
+                Upgrade Pro →
+              </button>
+            </div>
+          ) : null;
+        })()
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[390px_1fr] gap-5 items-start">
 

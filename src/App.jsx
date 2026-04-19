@@ -26,6 +26,13 @@ import MasterMesin from './components/MasterMesin';
 import { calculateImposition, calculateResults, calculateBulkSimulation } from './utils/calculator';
 import { suggestTechSpecs, generateBusinessAudit } from './lib/gemini';
 import { watchAuth, saveProject, isConfigured } from './lib/supabase';
+import LandingPage from './components/LandingPage';
+import FeatureGate from './components/FeatureGate';
+import { usePlan } from './hooks/usePlan';
+import { PlanContext } from './contexts/PlanContext';
+import UpgradeModal from './components/UpgradeModal';
+import AdminUpgrades from './components/AdminUpgrades';
+import { ADMIN_EMAILS } from './lib/plans';
 
 const INIT_IDENTITY = { productName: '', dimLength: '', dimWidth: '', dimHeight: '', gsm: '' };
 const INIT_SPECS    = { planoLength: 0, planoWidth: 0, flatLength: 0, flatWidth: 0, grip: 2, wasteRate: 5, colorCount: 4 };
@@ -46,10 +53,14 @@ export default function App() {
 
   const [user, setUser]                 = useState(null);
   const [showAuth, setShowAuth]         = useState(false);
+  const [showUpgrade, setShowUpgrade]   = useState(false);
+  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
   const [saveStatus, setSaveStatus]     = useState(null); // 'saving' | 'saved' | 'error'
   const [activePage, setActivePage]     = useState('dashboard');
   const [carryOverData, setCarryOver]   = useState(null);
   const [hash, setHash]                 = useState(window.location.hash);
+
+  const planHook = usePlan(user);
 
   // ── Hash-based public tracking route ────────────────────────────────────
   useEffect(() => {
@@ -164,9 +175,32 @@ export default function App() {
     return <QuotationClientPage quotationId={quotationMatch[1]} />;
   }
 
+  // ── Landing page route ───────────────────────────────────────────────────
+  const hostname = window.location.hostname;
+  if (hostname === 'naikcetak.com' || hostname === 'www.naikcetak.com') {
+    return <LandingPage />;
+  }
+
+  // Expose openUpgrade via context
+  const planContextValue = {
+    ...planHook,
+    showUpgrade,
+    openUpgrade:  () => user ? setShowUpgrade(true) : setShowAuth(true),
+    closeUpgrade: () => setShowUpgrade(false),
+  };
+
   return (
+    <PlanContext.Provider value={planContextValue}>
     <div className="min-h-screen bg-[#F7F7F5] font-sans flex">
-      <Header user={user} onLoginClick={() => setShowAuth(true)} activePage={activePage} onPageChange={setActivePage} />
+      <Header
+        user={user}
+        onLoginClick={() => setShowAuth(true)}
+        activePage={activePage}
+        onPageChange={setActivePage}
+        plan={planHook.plan}
+        onUpgradeClick={() => user ? setShowUpgrade(true) : setShowAuth(true)}
+        isAdmin={isAdmin}
+      />
 
       {/* Content area — shifted right on desktop to clear fixed sidebar */}
       <div className="flex-1 md:ml-56 pt-14 md:pt-0 min-w-0">
@@ -174,30 +208,50 @@ export default function App() {
         {activePage === 'dashboard' ? (
           <Dashboard user={user} onNavigate={setActivePage} />
         ) : activePage === 'invoice' ? (
-          <InvoiceGenerator user={user} onLoginRequest={() => setShowAuth(true)} />
+          <FeatureGate feature="invoice">
+            <InvoiceGenerator user={user} onLoginRequest={() => setShowAuth(true)} />
+          </FeatureGate>
         ) : activePage === 'brief' ? (
-          <AIBriefAnalyzer />
+          <FeatureGate feature="groqAI">
+            <AIBriefAnalyzer />
+          </FeatureGate>
         ) : activePage === 'email' ? (
-          <EmailProposalGenerator />
+          <FeatureGate feature="groqAI">
+            <EmailProposalGenerator />
+          </FeatureGate>
         ) : activePage === 'tracking' ? (
-          <OrderTrackingPortal />
+          <FeatureGate feature="trackingOrder">
+            <OrderTrackingPortal />
+          </FeatureGate>
         ) : activePage === 'quotation' ? (
-          <QuotationCountdown />
+          <FeatureGate feature="quotation">
+            <QuotationCountdown />
+          </FeatureGate>
         ) : activePage === 'potong' ? (
           <PotongKertas
             user={user}
+            planHook={planHook}
             onCarryOver={(data) => setCarryOver(data)}
             onNavigate={setActivePage}
+            onUpgradeClick={() => user ? setShowUpgrade(true) : setShowAuth(true)}
           />
         ) : activePage === 'cetakan' ? (
-          <HitungCetakan user={user} initialData={carryOverData} />
+          <HitungCetakan
+            user={user}
+            planHook={planHook}
+            initialData={carryOverData}
+            onUpgradeClick={() => user ? setShowUpgrade(true) : setShowAuth(true)}
+          />
         ) : activePage === 'masterKertas' ? (
           <MasterKertas />
         ) : activePage === 'masterFinishing' ? (
           <MasterFinishing />
         ) : activePage === 'masterMesin' ? (
           <MasterMesin />
+        ) : activePage === 'adminUpgrades' && isAdmin ? (
+          <AdminUpgrades user={user} />
         ) : (
+          <FeatureGate feature="kalkulatorHPP">
           <>
             {/* AI Suggestion Banner */}
             <AnimatePresence>
@@ -237,6 +291,7 @@ export default function App() {
               </div>
             </div>
           </>
+          </FeatureGate>
         )}
       </main>
       </div>
@@ -250,6 +305,19 @@ export default function App() {
           />
         )}
       </AnimatePresence>
+
+      {/* Upgrade Modal */}
+      <AnimatePresence>
+        {showUpgrade && user && (
+          <UpgradeModal
+            user={user}
+            currentPlan={planHook.plan}
+            onClose={() => setShowUpgrade(false)}
+            onSuccess={() => { setShowUpgrade(false); planHook.refreshPlan(); }}
+          />
+        )}
+      </AnimatePresence>
     </div>
+    </PlanContext.Provider>
   );
 }

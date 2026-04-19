@@ -168,3 +168,142 @@ export async function deleteActivity(id) {
   const { error } = await supabase.from('activity_log').delete().eq('id', id);
   if (error) throw error;
 }
+
+// ── User Profiles & Plan ──────────────────────────────────────────────────────
+
+export async function getUserProfile(userId) {
+  if (!isConfigured || !userId) return null;
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+  if (error) {
+    // Profile belum ada — buat otomatis
+    if (error.code === 'PGRST116') {
+      const { data: { user } } = await supabase.auth.getUser();
+      const newProfile = {
+        id: userId,
+        email: user?.email ?? '',
+        plan: 'starter',
+        plan_status: 'active',
+        usage_potong_kertas_count: 0,
+        usage_hitung_cetakan_count: 0,
+        usage_reset_at: new Date().toISOString(),
+      };
+      const { data: created } = await supabase.from('user_profiles').insert(newProfile).select().single();
+      return created;
+    }
+    return null;
+  }
+  return data;
+}
+
+export async function updateUserProfile(userId, updates) {
+  if (!isConfigured || !userId) return;
+  const { error } = await supabase
+    .from('user_profiles')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', userId);
+  if (error) throw error;
+}
+
+// ── Usage Tracking ────────────────────────────────────────────────────────────
+
+export async function trackUsage(userId, feature) {
+  if (!isConfigured || !userId) return;
+  await supabase.rpc('increment_usage', { p_user_id: userId, p_feature: feature });
+  await supabase.from('usage_logs').insert({ user_id: userId, feature });
+}
+
+// ── Upgrade Requests ──────────────────────────────────────────────────────────
+
+export async function submitUpgradeRequest(userId, { requestedPlan, billingCycle, paymentMethod, paymentNotes, amountToPay, userEmail, userName }) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { data, error } = await supabase
+    .from('upgrade_requests')
+    .insert({
+      user_id:        userId,
+      user_email:     userEmail,
+      user_name:      userName,
+      requested_plan: requestedPlan,
+      billing_cycle:  billingCycle,
+      amount_to_pay:  amountToPay,
+      payment_method: paymentMethod,
+      payment_notes:  paymentNotes,
+      status:         'pending',
+    })
+    .select()
+    .single();
+  if (error) throw error;
+
+  // Update status user ke pending_payment
+  await supabase.from('user_profiles').update({
+    plan_status:           'pending_payment',
+    upgrade_requested_at:  new Date().toISOString(),
+    upgrade_requested_plan: requestedPlan,
+    payment_method:        paymentMethod,
+    payment_notes:         paymentNotes,
+  }).eq('id', userId);
+
+  return data;
+}
+
+export async function getUserUpgradeRequests(userId) {
+  if (!isConfigured || !userId) return [];
+  const { data, error } = await supabase
+    .from('upgrade_requests')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(10);
+  if (error) return [];
+  return data ?? [];
+}
+
+export async function uploadPaymentProof(userId, requestId, file) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const ext = file.name.split('.').pop();
+  const path = `${userId}/${requestId}-${Date.now()}.${ext}`;
+  const { error: uploadError } = await supabase.storage
+    .from('payment-proofs')
+    .upload(path, file, { contentType: file.type });
+  if (uploadError) throw uploadError;
+
+  const { data: { publicUrl } } = supabase.storage.from('payment-proofs').getPublicUrl(path);
+
+  await supabase.from('upgrade_requests').update({ payment_proof_url: publicUrl }).eq('id', requestId).eq('user_id', userId);
+  await supabase.from('user_profiles').update({ payment_proof_url: publicUrl }).eq('id', userId);
+
+  return publicUrl;
+}
+
+// ── Admin Functions ───────────────────────────────────────────────────────────
+
+export async function adminGetUpgradeRequests(adminEmail) {
+  if (!isConfigured) return [];
+  const { data, error } = await supabase.rpc('admin_get_upgrade_requests', { p_admin_email: adminEmail });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function adminApproveUpgrade(requestId, adminEmail) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { data, error } = await supabase.rpc('admin_approve_upgrade', {
+    p_request_id:  requestId,
+    p_admin_email: adminEmail,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function adminRejectUpgrade(requestId, adminEmail, reason = '') {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { data, error } = await supabase.rpc('admin_reject_upgrade', {
+    p_request_id:  requestId,
+    p_admin_email: adminEmail,
+    p_reason:      reason,
+  });
+  if (error) throw error;
+  return data;
+}

@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package2, LogOut, User, Calculator, FileText, Brain,
   LayoutDashboard, Mail, Package, Timer, Menu, X, Zap,
-  Scissors, Printer, Database, Layers, Cpu,
+  Scissors, Printer, Database, Layers, Cpu, ShieldCheck,
 } from 'lucide-react';
 import { logout } from '../lib/supabase';
+import { PLANS } from '../lib/plans';
 
 const NAV_GROUPS = [
   {
@@ -47,7 +48,7 @@ const NAV_GROUPS = [
   },
 ];
 
-function NavItems({ activePage, onNav }) {
+function NavItems({ activePage, onNav, isAdmin }) {
   return (
     <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
       {NAV_GROUPS.map(group => (
@@ -73,6 +74,19 @@ function NavItems({ activePage, onNav }) {
           </div>
         </div>
       ))}
+      {isAdmin && (
+        <div>
+          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-2 mb-1.5">ADMIN</p>
+          <button onClick={() => onNav('adminUpgrades')}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all text-left ${
+              activePage === 'adminUpgrades'
+                ? 'bg-zinc-900 text-white'
+                : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
+            }`}>
+            <ShieldCheck size={15} className="shrink-0" /> Upgrade Requests
+          </button>
+        </div>
+      )}
     </nav>
   );
 }
@@ -113,7 +127,26 @@ function UserSection({ user, onLoginClick }) {
   );
 }
 
-export default function Header({ user, onLoginClick, activePage, onPageChange }) {
+function PlanBadge({ plan = 'starter', onUpgradeClick }) {
+  const cfg = PLANS[plan] ?? PLANS.starter;
+  if (plan === 'starter') {
+    return (
+      <button onClick={onUpgradeClick}
+        className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 hover:from-blue-100 hover:to-blue-200 transition-all">
+        <span className="text-xs font-bold text-blue-700">Upgrade ke Pro</span>
+        <Zap size={11} className="text-blue-500" />
+      </button>
+    );
+  }
+  return (
+    <div className="flex items-center justify-center px-3 py-1.5 rounded-lg"
+      style={{ background: cfg.color + '18', border: `1px solid ${cfg.color}40` }}>
+      <span className="text-xs font-bold" style={{ color: cfg.color }}>{cfg.badge}</span>
+    </div>
+  );
+}
+
+export default function Header({ user, onLoginClick, activePage, onPageChange, plan, onUpgradeClick, isAdmin }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleNav = (id) => {
@@ -135,7 +168,10 @@ export default function Header({ user, onLoginClick, activePage, onPageChange })
           </div>
         </div>
 
-        <NavItems activePage={activePage} onNav={handleNav} />
+        <NavItems activePage={activePage} onNav={handleNav} isAdmin={isAdmin} />
+        <div className="px-3 pb-2">
+          <PlanBadge plan={plan} onUpgradeClick={onUpgradeClick} />
+        </div>
         <UserSection user={user} onLoginClick={onLoginClick} />
       </aside>
 
@@ -190,7 +226,10 @@ export default function Header({ user, onLoginClick, activePage, onPageChange })
                 </div>
               </div>
 
-              <NavItems activePage={activePage} onNav={handleNav} />
+              <NavItems activePage={activePage} onNav={handleNav} isAdmin={isAdmin} />
+              <div className="px-3 pb-2">
+                <PlanBadge plan={plan} onUpgradeClick={() => { setDrawerOpen(false); onUpgradeClick?.(); }} />
+              </div>
               <UserSection user={user} onLoginClick={onLoginClick} />
             </motion.aside>
           </>

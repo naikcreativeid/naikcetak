@@ -68,7 +68,7 @@ const INIT = {
   profit: '20',
 };
 
-export default function HitungCetakan({ user, initialData }) {
+export default function HitungCetakan({ user, planHook, initialData, onUpgradeClick }) {
   const [form, setForm]                 = useState(() => ({ ...INIT, ...initialData }));
   const [finishingList, setFinishingList] = useState([]);
   const [masterKertas, setMK]           = useState([]);
@@ -186,6 +186,7 @@ export default function HitungCetakan({ user, initialData }) {
         });
       } catch { /* silent */ }
     }
+    if (user && planHook) await planHook.consumeUsage('hitung_cetakan');
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -213,6 +214,35 @@ export default function HitungCetakan({ user, initialData }) {
         <h1 className="text-xl font-black text-zinc-900">Hitung Cetakan</h1>
         <p className="text-sm text-zinc-500 mt-0.5">Kalkulasi biaya produksi cetak lengkap: kertas + ongkos + finishing + profit</p>
       </div>
+
+      {/* Usage limit banner */}
+      {planHook && !planHook.withinLimit('hitung_cetakan') && (
+        <div className="flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <div>
+            <p className="text-sm font-bold text-amber-800">Batas penggunaan bulanan tercapai</p>
+            <p className="text-xs text-amber-600 mt-0.5">Upgrade ke Pro untuk penggunaan tanpa batas.</p>
+          </div>
+          <button onClick={onUpgradeClick}
+            className="shrink-0 text-xs font-bold bg-amber-600 text-white px-3 py-1.5 rounded-lg hover:bg-amber-700 transition-colors">
+            Upgrade
+          </button>
+        </div>
+      )}
+      {planHook && planHook.withinLimit('hitung_cetakan') && planHook.plan === 'starter' && (
+        (() => {
+          const rem = planHook.remainingUsage('hitung_cetakan');
+          return rem <= 2 ? (
+            <div className="flex items-center justify-between gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+              <p className="text-xs text-blue-700">
+                Sisa <strong>{rem}x</strong> penggunaan bulan ini (Starter).
+              </p>
+              <button onClick={onUpgradeClick} className="shrink-0 text-xs font-bold text-blue-600 hover:underline">
+                Upgrade Pro →
+              </button>
+            </div>
+          ) : null;
+        })()
+      )}
 
       {initialData?.namaCetakan && (
         <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700">
