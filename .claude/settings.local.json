@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(node -e ' *)",
+      "Bash(npm run *)",
+      "Bash(npx vite *)",
+      "Skill(claude-api)",
+      "Skill(claude-api:*)",
+      "Bash(sed -i 's/VITE_GEMINI_API_KEY=.*/VITE_ANTHROPIC_API_KEY=your_anthropic_api_key_here/' \"d:/databasenaikcetak/.env.example\")",
+      "Bash(sed -i 's/VITE_GEMINI_API_KEY=.*/VITE_ANTHROPIC_API_KEY=your_anthropic_api_key_here/' \"d:/databasenaikcetak/.env\")"
+    ]
+  }
+}
