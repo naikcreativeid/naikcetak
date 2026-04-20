@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Check, X, ChevronDown, Star, Zap, Crown, Building2,
+  Check, X, ChevronDown, Star, Zap, Building2,
   Calculator, Scissors, Printer, FileText, Package,
   Brain, Mail, Database, ArrowRight, Menu, Shield,
   Clock, Layers,
 } from 'lucide-react';
-import { PLANS, getEffectivePrice } from '../lib/plans';
+import { PLANS } from '../lib/plans';
 
 const APP_URL      = 'https://app.naikcetak.com';
 const LOGIN_URL    = `${APP_URL}/#/login`;
@@ -87,7 +87,7 @@ const FAQ_ITEMS = [
   { q: 'Bagaimana jika saya tidak puas?',
     a: 'Hubungi kami dalam 7 hari setelah aktivasi. Kami akan mempertimbangkan refund jika ada alasan yang valid.' },
   { q: 'Apa itu Groq AI di naikcetak?',
-    a: 'Groq AI adalah AI assistant super cepat yang membantu analisis brief klien, saran spesifikasi teknis, dan audit bisnis. Paket Pro: gunakan API key Groq Anda sendiri (gratis). Paket Business: API key sudah termasuk.' },
+    a: 'Groq AI adalah AI assistant super cepat yang membantu analisis brief klien, saran spesifikasi teknis, dan audit bisnis. Paket Pro: gunakan API key Groq Anda sendiri secara gratis.' },
 ];
 
 const CITIES = ['Jakarta', 'Bandung', 'Surabaya', 'Medan', 'Makassar', 'Yogyakarta', 'Semarang', 'Bali', 'Palembang', 'Pekanbaru'];
@@ -407,8 +407,8 @@ function ScreenshotSection() {
 function PricingSection() {
   const [cycle, setCycle] = useState('monthly');
 
-  const planOrder = ['starter', 'pro', 'business'];
-  const planIcons = { starter: null, pro: Zap, business: Crown };
+  const planOrder = ['starter', 'pro'];
+  const planIcons = { starter: null, pro: Zap };
 
   return (
     <section id="pricing" className="py-20 bg-zinc-50 px-4">
@@ -421,7 +421,7 @@ function PricingSection() {
 
           {/* Billing toggle */}
           <div className="inline-flex bg-zinc-200 rounded-xl p-1 gap-1">
-            {[['monthly','Bulanan'],['yearly','Tahunan — Hemat 34%']].map(([val, label]) => (
+            {[['monthly','Bulanan'],['yearly','Tahunan — Hemat 47%']].map(([val, label]) => (
               <button key={val} onClick={() => setCycle(val)}
                 className={`text-sm font-semibold px-5 py-2 rounded-lg transition-all ${
                   cycle === val ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600'
@@ -432,12 +432,12 @@ function PricingSection() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
           {planOrder.map((planId) => {
             const plan  = PLANS[planId];
-            const price = getEffectivePrice(planId, cycle);
-            const normalPrice = plan.prices[cycle];
-            const isEB  = plan.earlyBird.active && price !== normalPrice;
+            const displayPrice = planId === 'pro' && cycle === 'yearly'
+              ? plan.prices.yearlyPerMonth
+              : plan.prices.monthly;
             const isPro = planId === 'pro';
             const Icon  = planIcons[planId];
 
@@ -463,23 +463,18 @@ function PricingSection() {
                 </div>
 
                 <div className="mb-6">
-                  {isEB && (
-                    <p className="text-sm text-zinc-400 line-through">
-                      Rp {normalPrice.toLocaleString('id-ID')}
-                    </p>
-                  )}
                   <div className="flex items-end gap-1">
                     <span className="text-3xl font-black text-zinc-900">
-                      {price === 0 ? 'Gratis' : 'Rp\u00A0' + price.toLocaleString('id-ID')}
+                      {displayPrice === 0 ? 'Gratis' : 'Rp\u00A0' + displayPrice.toLocaleString('id-ID')}
                     </span>
-                    {price > 0 && (
-                      <span className="text-zinc-400 text-sm mb-0.5">/{cycle === 'monthly' ? 'bln' : 'thn'}</span>
+                    {displayPrice > 0 && (
+                      <span className="text-zinc-400 text-sm mb-0.5">/bln</span>
                     )}
                   </div>
-                  {isEB && (
-                    <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                      🔥 Early Bird
-                    </span>
+                  {isPro && cycle === 'yearly' && (
+                    <p className="text-xs text-zinc-400 mt-0.5">
+                      Rp {plan.prices.yearly.toLocaleString('id-ID')}/tahun · hemat 47%
+                    </p>
                   )}
                 </div>
 
@@ -646,16 +641,25 @@ function FooterSection() {
             </p>
           </div>
           {[
-            { title: 'Produk', links: ['Fitur','Harga','Changelog'] },
-            { title: 'Support', links: ['FAQ','WhatsApp Admin','Email Support'] },
-            { title: 'Legal', links: ['Syarat & Ketentuan','Kebijakan Privasi'] },
+            { title: 'Produk', links: [
+              { label: 'Fitur', href: '#features' },
+              { label: 'Harga', href: '#pricing' },
+            ]},
+            { title: 'Support', links: [
+              { label: 'WhatsApp Admin', href: 'https://wa.me/6282261039601' },
+              { label: 'Email Support',  href: 'mailto:admin@naikcetak.com' },
+            ]},
+            { title: 'Legal', links: [
+              { label: 'Syarat & Ketentuan', href: '#' },
+              { label: 'Kebijakan Privasi',  href: '#' },
+            ]},
           ].map(({ title, links }) => (
             <div key={title}>
               <p className="text-xs font-bold text-white uppercase tracking-widest mb-3">{title}</p>
               <ul className="space-y-2">
-                {links.map(link => (
-                  <li key={link}>
-                    <a href="#" className="text-xs hover:text-white transition-colors">{link}</a>
+                {links.map(({ label, href }) => (
+                  <li key={label}>
+                    <a href={href} className="text-xs hover:text-white transition-colors">{label}</a>
                   </li>
                 ))}
               </ul>

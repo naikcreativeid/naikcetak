@@ -24,7 +24,7 @@ function fmt(date) {
   return new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-const WA_NUMBER = import.meta.env.VITE_ADMIN_WA ?? '6281234567890';
+const WA_NUMBER = import.meta.env.VITE_ADMIN_WA ?? '6282261039601';
 
 function waReminder7(user) {
   const msg = `Halo ${user.full_name ?? user.email}! 👋\nLangganan naikcetak Anda (Paket ${PLANS[user.plan]?.name ?? user.plan}) akan berakhir dalam *7 hari* (${fmt(user.plan_expires_at)}).\nSilakan perpanjang agar tidak terputus!\n\nInfo perpanjangan: wa.me/${WA_NUMBER}\n\nTerima kasih 🙏 — naikcetak.com`;

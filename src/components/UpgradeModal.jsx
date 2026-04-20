@@ -46,7 +46,7 @@ function BillingToggle({ cycle, onChange }) {
           {label}
           {val === 'yearly' && (
             <span className="ml-1.5 bg-green-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
-              HEMAT 34%
+              HEMAT 47%
             </span>
           )}
         </button>
@@ -58,9 +58,7 @@ function BillingToggle({ cycle, onChange }) {
 // ── Comparison view (Step 0) ──────────────────────────────────────────────────
 function ComparisonView({ cycle, onCycleChange, onUpgrade }) {
   const [showPayInfo, setShowPayInfo] = useState(false);
-  const proPrice     = getEffectivePrice('pro', cycle);
-  const proNormal    = PLANS.pro.prices[cycle === 'monthly' ? 'monthly' : 'yearly'];
-  const isEarlyBird  = PLANS.pro.earlyBird.active;
+  const proPrice     = cycle === 'yearly' ? PLANS.pro.prices.yearlyPerMonth : PLANS.pro.prices.monthly;
 
   return (
     <div className="flex flex-col md:flex-row overflow-hidden">
@@ -128,21 +126,28 @@ function ComparisonView({ cycle, onCycleChange, onUpgrade }) {
 
           {/* Price */}
           <div className="mb-5">
-            {isEarlyBird && proNormal !== proPrice && (
+            {cycle === 'yearly' && (
               <span className="text-sm text-zinc-400 line-through mr-2">
-                Rp {proNormal.toLocaleString('id-ID')}
+                Rp {PLANS.pro.prices.monthly.toLocaleString('id-ID')}
               </span>
             )}
             <span className="text-4xl font-black text-blue-600">
               Rp {proPrice.toLocaleString('id-ID')}
             </span>
-            <span className="text-sm text-zinc-500 ml-1">/{cycle === 'monthly' ? 'bulan' : 'bulan'}</span>
+            <span className="text-sm text-zinc-500 ml-1">/bulan</span>
             {cycle === 'yearly' && (
               <p className="text-xs text-zinc-400 mt-0.5">
-                (Rp {getEffectivePrice('pro', 'yearly').toLocaleString('id-ID')}/tahun)
+                (Rp {PLANS.pro.prices.yearly.toLocaleString('id-ID')}/tahun)
               </p>
             )}
           </div>
+
+          {/* Early Access badge — hanya tahunan */}
+          {cycle === 'yearly' && (
+            <div className="mb-4 inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-semibold px-3 py-1.5 rounded-full">
+              ⭐ Early Access — akses fitur baru lebih awal, khusus plan tahunan
+            </div>
+          )}
 
           {/* Feature grid */}
           <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
@@ -173,7 +178,7 @@ function ComparisonView({ cycle, onCycleChange, onUpgrade }) {
           </motion.button>
 
           <p className="text-[11px] text-center text-zinc-400 mt-2 leading-relaxed">
-            💰 Hemat 34% jika bayar tahunan · Aktivasi maksimal 1×24 jam · Transfer ke rekening naikcetak
+            💰 Hemat 47% jika bayar tahunan · Aktivasi maksimal 1×24 jam · Transfer ke rekening naikcetak
           </p>
 
           {/* Collapsible payment info */}
@@ -340,10 +345,11 @@ export default function UpgradeModal({ user, currentPlan = 'starter', onClose, o
 
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { val: 'monthly', label: 'Bulanan',  note: '' },
-                  { val: 'yearly',  label: 'Tahunan',  note: 'Hemat ~34%' },
+                  { val: 'monthly', label: 'Bulanan', note: '' },
+                  { val: 'yearly',  label: 'Tahunan', note: 'Hemat 47%' },
                 ].map(({ val, label, note }) => {
-                  const p = getEffectivePrice('pro', val);
+                  const displayP = val === 'yearly' ? PLANS.pro.prices.yearlyPerMonth : PLANS.pro.prices.monthly;
+                  const totalP   = val === 'yearly' ? PLANS.pro.prices.yearly : null;
                   return (
                     <button key={val} type="button" onClick={() => setCycle(val)}
                       className={`text-left rounded-xl border-2 p-4 transition-all ${
@@ -351,9 +357,14 @@ export default function UpgradeModal({ user, currentPlan = 'starter', onClose, o
                       }`}>
                       <p className="text-sm font-semibold text-zinc-800">{label}</p>
                       <p className="text-xl font-black text-zinc-900 mt-1">
-                        Rp {p.toLocaleString('id-ID')}
+                        Rp {displayP.toLocaleString('id-ID')}
                       </p>
-                      <p className="text-xs text-zinc-400">/{val === 'monthly' ? 'bulan' : 'tahun'}</p>
+                      <p className="text-xs text-zinc-400">/bulan</p>
+                      {totalP && (
+                        <p className="text-[11px] text-zinc-400 mt-0.5">
+                          (Rp {totalP.toLocaleString('id-ID')}/tahun)
+                        </p>
+                      )}
                       {note && (
                         <span className="mt-2 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full inline-block">
                           {note}

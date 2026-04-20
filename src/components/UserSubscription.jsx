@@ -240,6 +240,7 @@ export default function UserSubscription({ user, onUpgradeClick }) {
               customBranding: 'Custom Branding', apiAccess: 'API Access',
               prioritySupport: 'Priority Support', onboardingCall: 'Onboarding Call',
               potongKertas: 'Potong Kertas', hitungCetakan: 'Hitung Cetakan',
+              earlyAccess: 'Early Access (Tahunan)',
             };
             if (!labels[key]) return null;
             return (
