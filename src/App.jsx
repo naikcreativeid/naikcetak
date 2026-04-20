@@ -179,10 +179,12 @@ export default function App() {
   }
 
   // ── Reset password route ─────────────────────────────────────────────────
-  if (hash.startsWith('#/reset-password')) {
+  // Supabase sends recovery token as: #access_token=...&type=recovery
+  const isRecovery = hash.includes('type=recovery') || hash.startsWith('#/reset-password');
+  if (isRecovery) {
     return (
       <ResetPasswordPage
-        hasSession={!!user}
+        hasSession={!!user || hash.includes('type=recovery')}
         onLogin={() => { window.location.hash = '#/login'; }}
       />
     );

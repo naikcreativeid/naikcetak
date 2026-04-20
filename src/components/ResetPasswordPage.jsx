@@ -18,7 +18,7 @@ function RequestResetForm({ onSent }) {
     setLoading(true); setError('');
     try {
       const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/#/reset-password`,
+        redirectTo: window.location.origin,
       });
       if (err) throw err;
       onSent(email);
