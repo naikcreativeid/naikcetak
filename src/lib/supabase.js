@@ -307,3 +307,108 @@ export async function adminRejectUpgrade(requestId, adminEmail, reason = '') {
   if (error) throw error;
   return data;
 }
+
+// ── Client Tracker ────────────────────────────────────────────────────────────
+
+function generateTrackingToken() {
+  const array = new Uint8Array(18);
+  crypto.getRandomValues(array);
+  return btoa(String.fromCharCode(...array))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+export async function createClientOrder(userId, data) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { count } = await supabase
+    .from('client_orders')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId);
+  const year        = new Date().getFullYear();
+  const orderNumber = `ORD-${year}-${String((count ?? 0) + 1).padStart(3, '0')}`;
+  const token       = generateTrackingToken();
+  const trackingUrl = `${window.location.origin}/#/track/${token}`;
+
+  const { data: order, error } = await supabase
+    .from('client_orders')
+    .insert({ user_id: userId, order_number: orderNumber, tracking_token: token, tracking_url: trackingUrl, ...data })
+    .select()
+    .single();
+  if (error) throw error;
+
+  // Initial update log
+  await supabase.from('order_updates').insert({
+    order_id: order.id, status_from: null, status_to: 'order_masuk',
+    note: 'Order baru dibuat.', updated_by: data.userEmail ?? '',
+  });
+  return order;
+}
+
+export async function getUserClientOrders(userId) {
+  if (!isConfigured) return [];
+  const { data, error } = await supabase
+    .from('client_orders')
+    .select('*, order_updates(id, status_to, note, photo_url, created_at)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function updateClientOrder(orderId, updates) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { data, error } = await supabase
+    .from('client_orders')
+    .update(updates)
+    .eq('id', orderId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteClientOrder(orderId) {
+  if (!isConfigured) return;
+  const { error } = await supabase.from('client_orders').delete().eq('id', orderId);
+  if (error) throw error;
+}
+
+export async function addOrderStatusUpdate(orderId, { statusFrom, statusTo, note, photoUrl, updatedBy }) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { error: orderError } = await supabase
+    .from('client_orders')
+    .update({ current_status: statusTo })
+    .eq('id', orderId);
+  if (orderError) throw orderError;
+
+  const { error } = await supabase.from('order_updates').insert({
+    order_id: orderId, status_from: statusFrom, status_to: statusTo,
+    note: note || null, photo_url: photoUrl || null, updated_by: updatedBy ?? '',
+  });
+  if (error) throw error;
+}
+
+export async function getOrderByToken(token) {
+  if (!isConfigured) return null;
+  const { data, error } = await supabase.rpc('get_order_by_token', { p_token: token });
+  if (error) return null;
+  return data;
+}
+
+export async function uploadOrderPhoto(userId, file) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const ext  = file.name.split('.').pop();
+  const path = `${userId}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from('order-photos').upload(path, file, { upsert: true });
+  if (error) throw error;
+  const { data } = supabase.storage.from('order-photos').getPublicUrl(path);
+  return data.publicUrl;
+}
+
+export async function toggleOrderTracking(orderId, active) {
+  if (!isConfigured) return;
+  const { error } = await supabase
+    .from('client_orders')
+    .update({ is_tracking_active: active })
+    .eq('id', orderId);
+  if (error) throw error;
+}

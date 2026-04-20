@@ -23,6 +23,7 @@ import HitungCetakan from './components/HitungCetakan';
 import MasterKertas from './components/MasterKertas';
 import MasterFinishing from './components/MasterFinishing';
 import MasterMesin from './components/MasterMesin';
+import ClientTracker from './components/ClientTracker';
 import { calculateImposition, calculateResults, calculateBulkSimulation } from './utils/calculator';
 import { suggestTechSpecs, generateBusinessAudit } from './lib/gemini';
 import { watchAuth, saveProject, isConfigured } from './lib/supabase';
@@ -166,7 +167,7 @@ export default function App() {
   const setMargin  = useCallback((m)    => setCosts((p)  => ({ ...p, margin: m })), []);
 
   // ── Public routes (must be after all hooks) ─────────────────────────────
-  const trackMatch = hash.match(/^#\/track(?:\/([A-Z0-9]+))?$/i);
+  const trackMatch = hash.match(/^#\/track(?:\/([A-Za-z0-9_-]+))?$/);
   if (trackMatch) {
     return <TrackingPage initialToken={trackMatch[1] ?? ''} />;
   }
@@ -259,6 +260,8 @@ export default function App() {
             initialData={carryOverData}
             onUpgradeClick={() => user ? setShowUpgrade(true) : setShowAuth(true)}
           />
+        ) : activePage === 'clientTracker' ? (
+          <ClientTracker user={user} />
         ) : activePage === 'masterKertas' ? (
           <MasterKertas />
         ) : activePage === 'masterFinishing' ? (

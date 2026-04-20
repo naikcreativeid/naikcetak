@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package2, LogOut, User, Calculator, FileText, Brain,
   LayoutDashboard, Mail, Package, Timer, Menu, X, Zap,
-  Scissors, Printer, Database, Layers, Cpu, ShieldCheck,
+  Scissors, Printer, Database, Layers, Cpu, ShieldCheck, Share2,
 } from 'lucide-react';
 import { logout } from '../lib/supabase';
 import { PLANS } from '../lib/plans';
@@ -18,17 +18,18 @@ const NAV_GROUPS = [
   {
     label: 'OPERASIONAL',
     items: [
-      { id: 'calculator', Icon: Calculator, label: 'Kalkulator HPP' },
-      { id: 'invoice',    Icon: FileText,   label: 'Invoice'        },
-      { id: 'quotation',  Icon: Timer,      label: 'Quotation'      },
-      { id: 'tracking',   Icon: Package,    label: 'Tracking Order' },
+      { id: 'calculator',    Icon: Calculator, label: 'Kalkulator HPP'  },
+      { id: 'invoice',       Icon: FileText,   label: 'Invoice'         },
+      { id: 'quotation',     Icon: Timer,      label: 'Quotation'       },
+      { id: 'tracking',      Icon: Package,    label: 'Tracking Order'  },
+      { id: 'clientTracker', Icon: Share2,     label: 'Client Tracker', badge: 'Baru', badgeColor: 'blue' },
     ],
   },
   {
     label: 'PRODUKSI',
     items: [
-      { id: 'potong',   Icon: Scissors, label: 'Potong Kertas'  },
-      { id: 'cetakan',  Icon: Printer,  label: 'Hitung Cetakan' },
+      { id: 'potong',   Icon: Scissors, label: 'Potong Kertas',  badge: 'Baru', badgeColor: 'emerald' },
+      { id: 'cetakan',  Icon: Printer,  label: 'Hitung Cetakan', badge: 'Baru', badgeColor: 'emerald' },
     ],
   },
   {
@@ -57,7 +58,7 @@ function NavItems({ activePage, onNav, isAdmin }) {
             {group.label}
           </p>
           <div className="space-y-0.5">
-            {group.items.map(({ id, Icon, label }) => (
+            {group.items.map(({ id, Icon, label, badge, badgeColor }) => (
               <button
                 key={id}
                 onClick={() => onNav(id)}
@@ -68,7 +69,14 @@ function NavItems({ activePage, onNav, isAdmin }) {
                 }`}
               >
                 <Icon size={15} className="shrink-0" />
-                {label}
+                <span className="flex-1">{label}</span>
+                {badge && (
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
+                    badgeColor === 'blue'    ? 'bg-blue-100 text-blue-700' :
+                    badgeColor === 'emerald' ? 'bg-emerald-100 text-emerald-700' :
+                    'bg-zinc-100 text-zinc-500'
+                  }`}>{badge}</span>
+                )}
               </button>
             ))}
           </div>
