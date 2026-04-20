@@ -177,9 +177,11 @@ export default function Header({ user, onLoginClick, activePage, onPageChange, p
         </div>
 
         <NavItems activePage={activePage} onNav={handleNav} isAdmin={isAdmin} />
-        <div className="px-3 pb-2">
-          <PlanBadge plan={plan} onUpgradeClick={onUpgradeClick} />
-        </div>
+        {!isAdmin && (
+          <div className="px-3 pb-2">
+            <PlanBadge plan={plan} onUpgradeClick={onUpgradeClick} />
+          </div>
+        )}
         <UserSection user={user} onLoginClick={onLoginClick} />
       </aside>
 
@@ -235,9 +237,11 @@ export default function Header({ user, onLoginClick, activePage, onPageChange, p
               </div>
 
               <NavItems activePage={activePage} onNav={handleNav} isAdmin={isAdmin} />
-              <div className="px-3 pb-2">
-                <PlanBadge plan={plan} onUpgradeClick={() => { setDrawerOpen(false); onUpgradeClick?.(); }} />
-              </div>
+              {!isAdmin && (
+                <div className="px-3 pb-2">
+                  <PlanBadge plan={plan} onUpgradeClick={() => { setDrawerOpen(false); onUpgradeClick?.(); }} />
+                </div>
+              )}
               <UserSection user={user} onLoginClick={onLoginClick} />
             </motion.aside>
           </>

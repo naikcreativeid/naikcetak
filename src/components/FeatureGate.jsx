@@ -17,11 +17,11 @@ export default function FeatureGate({
   fallback,
   showBlur = true,
 }) {
-  const { can, withinLimit, openUpgrade } = usePlanContext();
+  const { can, withinLimit, openUpgrade, isAdmin } = usePlanContext();
 
   const hasAccess    = feature      ? can(feature)              : true;
   const hasUsageLeft = usageFeature ? withinLimit(usageFeature) : true;
-  const blocked      = !hasAccess || !hasUsageLeft;
+  const blocked      = !isAdmin && (!hasAccess || !hasUsageLeft);
 
   if (!blocked) return <>{children}</>;
 

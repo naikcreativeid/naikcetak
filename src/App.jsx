@@ -215,6 +215,7 @@ export default function App() {
   // Expose openUpgrade via context
   const planContextValue = {
     ...planHook,
+    isAdmin,
     showUpgrade,
     openUpgrade:  () => user ? setShowUpgrade(true) : setShowAuth(true),
     closeUpgrade: () => setShowUpgrade(false),

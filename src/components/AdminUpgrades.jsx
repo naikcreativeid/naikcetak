@@ -2,9 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShieldCheck, Search, RefreshCw, CheckCircle2, XCircle,
-  Eye, Phone, Mail, ExternalLink, Loader2, Clock, SortAsc,
+  Eye, Phone, Mail, ExternalLink, Loader2, Clock, UserPlus,
+  KeyRound, Trash2, Zap, Users, ChevronDown, ChevronUp,
 } from 'lucide-react';
-import { adminGetUpgradeRequests, adminApproveUpgrade, adminRejectUpgrade } from '../lib/supabase';
+import {
+  adminGetUpgradeRequests, adminApproveUpgrade, adminRejectUpgrade,
+  adminGetAllUsers, adminCreateUser, adminResetUserPassword, adminDirectUpgrade, adminDeleteUser,
+} from '../lib/supabase';
 import { PLANS } from '../lib/plans';
 import { formatRp } from '../lib/masterData';
 
@@ -30,9 +34,9 @@ function StatusBadge({ status }) {
 function timeAgo(dateStr) {
   if (!dateStr) return '—';
   const diff = (Date.now() - new Date(dateStr)) / 1000;
-  if (diff < 60)   return 'Baru saja';
-  if (diff < 3600) return `${Math.floor(diff / 60)} mnt lalu`;
-  if (diff < 86400)return `${Math.floor(diff / 3600)} jam lalu`;
+  if (diff < 60)    return 'Baru saja';
+  if (diff < 3600)  return `${Math.floor(diff / 60)} mnt lalu`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} jam lalu`;
   return `${Math.floor(diff / 86400)} hari lalu`;
 }
 
@@ -97,7 +101,110 @@ function RejectModal({ req, adminEmail, onDone, onCancel }) {
   );
 }
 
-// ── Row ───────────────────────────────────────────────────────────────────────
+// ── Reset Password Modal ──────────────────────────────────────────────────────
+function ResetPasswordModal({ targetUser, onDone, onCancel }) {
+  const [password, setPassword] = useState('');
+  const [loading,  setLoading]  = useState(false);
+
+  const handleReset = async () => {
+    if (password.length < 8) { alert('Password minimal 8 karakter.'); return; }
+    if (!confirm(`Reset password ${targetUser.email}?`)) return;
+    setLoading(true);
+    try {
+      await adminResetUserPassword(targetUser.id, password);
+      alert(`Password ${targetUser.email} berhasil diubah.`);
+      onDone();
+    } catch (err) {
+      alert('Gagal: ' + err.message);
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-60 bg-black/50 flex items-center justify-center p-4"
+      onClick={(e) => e.target === e.currentTarget && onCancel()}>
+      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <h3 className="font-bold text-zinc-900 flex items-center gap-2">
+          <KeyRound size={16} /> Reset Password
+        </h3>
+        <p className="text-xs text-zinc-500">User: <strong>{targetUser.email}</strong></p>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1.5">Password Baru</label>
+          <input type="text" value={password} onChange={e => setPassword(e.target.value)}
+            placeholder="Masukkan password baru (min. 8 karakter)"
+            className="input-field" />
+        </div>
+        <div className="flex gap-2">
+          <button onClick={onCancel} className="btn-ghost flex-1">Batal</button>
+          <button onClick={handleReset} disabled={password.length < 8 || loading}
+            className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl transition-colors disabled:opacity-50">
+            {loading && <Loader2 size={13} className="animate-spin" />}
+            Reset Password
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ── Upgrade User Modal ────────────────────────────────────────────────────────
+function UpgradeUserModal({ targetUser, onDone, onCancel }) {
+  const [plan,    setPlan]    = useState('pro');
+  const [months,  setMonths]  = useState(1);
+  const [loading, setLoading] = useState(false);
+
+  const handleUpgrade = async () => {
+    if (!confirm(`Upgrade ${targetUser.email} ke ${plan} selama ${months} bulan?`)) return;
+    setLoading(true);
+    try {
+      await adminDirectUpgrade(targetUser.id, plan, months);
+      alert(`${targetUser.email} berhasil di-upgrade ke ${plan}.`);
+      onDone();
+    } catch (err) {
+      alert('Gagal: ' + err.message);
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-60 bg-black/50 flex items-center justify-center p-4"
+      onClick={(e) => e.target === e.currentTarget && onCancel()}>
+      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <h3 className="font-bold text-zinc-900 flex items-center gap-2">
+          <Zap size={16} className="text-blue-600" /> Upgrade User
+        </h3>
+        <p className="text-xs text-zinc-500">User: <strong>{targetUser.email}</strong></p>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1.5">Paket</label>
+            <select value={plan} onChange={e => setPlan(e.target.value)} className="input-field">
+              <option value="pro">Pro</option>
+              <option value="business">Business</option>
+              <option value="starter">Starter (downgrade)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1.5">Durasi (bulan)</label>
+            <input type="number" min={1} max={24} value={months} onChange={e => setMonths(+e.target.value)}
+              className="input-field" />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={onCancel} className="btn-ghost flex-1">Batal</button>
+          <button onClick={handleUpgrade} disabled={loading}
+            className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl transition-colors disabled:opacity-50">
+            {loading && <Loader2 size={13} className="animate-spin" />}
+            Upgrade Sekarang
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ── Request Row ───────────────────────────────────────────────────────────────
 function RequestRow({ req, adminEmail, onApproved, onRejected }) {
   const [approving, setApproving]   = useState(false);
   const [showReject, setShowReject] = useState(false);
@@ -122,39 +229,26 @@ function RequestRow({ req, adminEmail, onApproved, onRejected }) {
 
   return (
     <>
-      <motion.tr
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-        className="border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors"
-      >
-        {/* User info */}
+      <motion.tr initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        className="border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors">
         <td className="px-4 py-3">
-          <p className="text-sm font-semibold text-zinc-800 truncate max-w-[160px]">
-            {req.user_name || '—'}
-          </p>
+          <p className="text-sm font-semibold text-zinc-800 truncate max-w-[160px]">{req.user_name || '—'}</p>
           <p className="text-xs text-zinc-400 flex items-center gap-1 mt-0.5">
             <Mail size={10} /> {req.user_email}
           </p>
         </td>
-
-        {/* Plan */}
         <td className="px-4 py-3">
           <span className="text-sm font-bold" style={{ color: plan?.color ?? '#374151' }}>
             {plan?.name ?? req.requested_plan}
           </span>
           <p className="text-xs text-zinc-400">{req.billing_cycle === 'monthly' ? 'Bulanan' : 'Tahunan'}</p>
         </td>
-
-        {/* Nominal */}
         <td className="px-4 py-3 text-sm font-bold text-zinc-800 whitespace-nowrap">
           {formatRp(req.amount_to_pay)}
         </td>
-
-        {/* Metode */}
         <td className="px-4 py-3 text-xs text-zinc-500 capitalize hidden md:table-cell">
           {(req.payment_method ?? '—').replace('_', ' ')}
         </td>
-
-        {/* Bukti */}
         <td className="px-4 py-3 hidden lg:table-cell">
           {req.payment_proof_url ? (
             <button onClick={() => setProofOpen(true)}
@@ -165,19 +259,11 @@ function RequestRow({ req, adminEmail, onApproved, onRejected }) {
             <span className="text-xs text-zinc-300">Belum upload</span>
           )}
         </td>
-
-        {/* Waktu */}
         <td className="px-4 py-3 text-xs text-zinc-400 whitespace-nowrap hidden md:table-cell">
           <Clock size={10} className="inline mr-1" />
           {timeAgo(req.submitted_at)}
         </td>
-
-        {/* Status */}
-        <td className="px-4 py-3">
-          <StatusBadge status={req.status} />
-        </td>
-
-        {/* Aksi */}
+        <td className="px-4 py-3"><StatusBadge status={req.status} /></td>
         <td className="px-4 py-3">
           {req.status === 'pending' ? (
             <div className="flex items-center gap-1">
@@ -202,7 +288,6 @@ function RequestRow({ req, adminEmail, onApproved, onRejected }) {
         </td>
       </motion.tr>
 
-      {/* Proof preview modal */}
       <AnimatePresence>
         {proofOpen && req.payment_proof_url && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -228,28 +313,24 @@ function RequestRow({ req, adminEmail, onApproved, onRejected }) {
         )}
       </AnimatePresence>
 
-      {/* Reject modal */}
       <AnimatePresence>
         {showReject && (
-          <RejectModal
-            req={req}
-            adminEmail={adminEmail}
+          <RejectModal req={req} adminEmail={adminEmail}
             onDone={(id, reason) => { setShowReject(false); onRejected(id, reason); }}
-            onCancel={() => setShowReject(false)}
-          />
+            onCancel={() => setShowReject(false)} />
         )}
       </AnimatePresence>
     </>
   );
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
-export default function AdminUpgrades({ user }) {
+// ── Tab: Upgrade Requests ─────────────────────────────────────────────────────
+function UpgradeRequestsTab({ user }) {
   const [requests, setRequests] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [filter, setFilter]     = useState('pending');
-  const [search, setSearch]     = useState('');
-  const [sort, setSort]         = useState('newest');
+  const [loading,  setLoading]  = useState(true);
+  const [filter,   setFilter]   = useState('pending');
+  const [search,   setSearch]   = useState('');
+  const [sort,     setSort]     = useState('newest');
 
   const fetchRequests = useCallback(async () => {
     setLoading(true);
@@ -271,8 +352,7 @@ export default function AdminUpgrades({ user }) {
     .filter(r => {
       if (!search) return true;
       const q = search.toLowerCase();
-      return (r.user_email ?? '').toLowerCase().includes(q) ||
-             (r.user_name  ?? '').toLowerCase().includes(q);
+      return (r.user_email ?? '').toLowerCase().includes(q) || (r.user_name ?? '').toLowerCase().includes(q);
     })
     .sort((a, b) => {
       if (sort === 'newest')  return new Date(b.created_at) - new Date(a.created_at);
@@ -288,56 +368,40 @@ export default function AdminUpgrades({ user }) {
   };
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div>
-          <h2 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
-            <ShieldCheck size={18} className="text-zinc-700" /> Admin — Upgrade Requests
-          </h2>
-          <p className="text-sm text-zinc-500 mt-0.5">
-            {counts.pending} menunggu · {counts.approved} disetujui · {counts.rejected} ditolak
-          </p>
-        </div>
-        <button onClick={fetchRequests} disabled={loading}
-          className="flex items-center gap-2 btn-ghost text-sm">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <p className="text-sm text-zinc-500">
+          {counts.pending} menunggu · {counts.approved} disetujui · {counts.rejected} ditolak
+        </p>
+        <button onClick={fetchRequests} disabled={loading} className="flex items-center gap-2 btn-ghost text-sm">
           <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
         </button>
       </div>
 
-      {/* Filters + search */}
       <div className="flex flex-wrap gap-3 items-center">
         <div className="flex bg-zinc-100 rounded-lg p-1 gap-1">
           {[['all', 'Semua'], ['pending', 'Menunggu'], ['approved', 'Disetujui'], ['rejected', 'Ditolak']].map(([val, label]) => (
             <button key={val} onClick={() => setFilter(val)}
-              className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-all ${
-                filter === val ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'
-              }`}>
+              className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-all ${filter === val ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'}`}>
               {label}
               {val === 'pending' && counts.pending > 0 && (
-                <span className="ml-1.5 bg-amber-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">
-                  {counts.pending}
-                </span>
+                <span className="ml-1.5 bg-amber-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">{counts.pending}</span>
               )}
             </button>
           ))}
         </div>
-
         <div className="relative flex-1 min-w-[180px]">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input className="input-field pl-8 text-sm py-1.5" placeholder="Cari nama / email..."
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-
-        <select value={sort} onChange={e => setSort(e.target.value)}
-          className="input-field text-xs py-1.5 w-auto">
+        <select value={sort} onChange={e => setSort(e.target.value)} className="input-field text-xs py-1.5 w-auto">
           <option value="newest">Terbaru</option>
           <option value="oldest">Terlama</option>
           <option value="highest">Nominal Tertinggi</option>
         </select>
       </div>
 
-      {/* Table */}
       {loading ? (
         <div className="card p-12 flex items-center justify-center gap-3 text-zinc-400">
           <Loader2 size={18} className="animate-spin" />
@@ -375,6 +439,245 @@ export default function AdminUpgrades({ user }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Tab: Kelola User ──────────────────────────────────────────────────────────
+function ManageUsersTab({ user }) {
+  const [users,       setUsers]       = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [search,      setSearch]      = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [resetTarget, setResetTarget] = useState(null);
+  const [upgradeTarget, setUpgradeTarget] = useState(null);
+
+  // Add user form state
+  const [newName,     setNewName]     = useState('');
+  const [newEmail,    setNewEmail]    = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [creating,    setCreating]    = useState(false);
+
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await adminGetAllUsers();
+      setUsers(data);
+    } catch (err) {
+      alert('Gagal memuat user: ' + err.message);
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    if (newPassword.length < 8) { alert('Password minimal 8 karakter.'); return; }
+    setCreating(true);
+    try {
+      await adminCreateUser(newEmail, newPassword, newName);
+      alert(`User ${newEmail} berhasil dibuat. Bisa langsung login.`);
+      setNewName(''); setNewEmail(''); setNewPassword('');
+      setShowAddForm(false);
+      fetchUsers();
+    } catch (err) {
+      alert('Gagal membuat user: ' + err.message);
+    } finally { setCreating(false); }
+  };
+
+  const handleDelete = async (u) => {
+    if (!confirm(`Hapus user ${u.email}? Tindakan ini tidak bisa dibatalkan.`)) return;
+    try {
+      await adminDeleteUser(u.id);
+      setUsers(prev => prev.filter(x => x.id !== u.id));
+    } catch (err) {
+      alert('Gagal hapus: ' + err.message);
+    }
+  };
+
+  const filtered = users.filter(u => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (u.email ?? '').toLowerCase().includes(q) || (u.full_name ?? '').toLowerCase().includes(q);
+  });
+
+  const PLAN_COLOR = { starter: '#6B7280', pro: '#2563EB', business: '#D97706' };
+
+  return (
+    <div className="space-y-4">
+      {/* Header actions */}
+      <div className="flex flex-wrap gap-3 items-center justify-between">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+          <input className="input-field pl-8 text-sm py-1.5" placeholder="Cari nama / email..."
+            value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+        <div className="flex gap-2">
+          <button onClick={fetchUsers} disabled={loading} className="btn-ghost flex items-center gap-1.5 text-sm">
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
+          <button onClick={() => setShowAddForm(v => !v)}
+            className="flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-700 text-white text-sm font-semibold px-3 py-2 rounded-xl transition-colors">
+            <UserPlus size={14} />
+            {showAddForm ? 'Tutup' : 'Tambah User'}
+            {showAddForm ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Add user form */}
+      <AnimatePresence>
+        {showAddForm && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+            className="card p-5 border-2 border-dashed border-zinc-300 bg-zinc-50/50">
+            <h3 className="font-bold text-zinc-800 mb-4 flex items-center gap-2">
+              <UserPlus size={15} /> Tambah User Manual
+            </h3>
+            <form onSubmit={handleCreateUser} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-zinc-600 mb-1">Nama Lengkap</label>
+                <input type="text" value={newName} onChange={e => setNewName(e.target.value)}
+                  required placeholder="Nama user" className="input-field text-sm py-2" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-600 mb-1">Email</label>
+                <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)}
+                  required placeholder="email@contoh.com" className="input-field text-sm py-2" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-600 mb-1">Password Awal (min. 8 karakter)</label>
+                <input type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                  required placeholder="Password langsung bisa dipakai" className="input-field text-sm py-2" />
+              </div>
+              <div className="sm:col-span-3 flex justify-end">
+                <button type="submit" disabled={creating}
+                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2 rounded-xl text-sm transition-colors disabled:opacity-50">
+                  {creating ? <Loader2 size={13} className="animate-spin" /> : <UserPlus size={13} />}
+                  {creating ? 'Membuat...' : 'Buat Akun Sekarang'}
+                </button>
+              </div>
+            </form>
+            <p className="text-xs text-zinc-400 mt-2">
+              ✓ User langsung bisa login — tidak perlu verifikasi email.
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* User table */}
+      {loading ? (
+        <div className="card p-12 flex items-center justify-center gap-3 text-zinc-400">
+          <Loader2 size={18} className="animate-spin" />
+          <span className="text-sm">Memuat data user...</span>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="card p-12 text-center text-zinc-400 text-sm">
+          {search ? 'Tidak ada user yang cocok.' : 'Belum ada user.'}
+        </div>
+      ) : (
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-zinc-50 border-b border-zinc-200 text-left">
+                  <th className="px-4 py-3 text-xs font-semibold text-zinc-500">User</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Plan</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-zinc-500 hidden md:table-cell">Bergabung</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-zinc-500 hidden lg:table-cell">Aktif Hingga</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(u => (
+                  <tr key={u.id} className="border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors">
+                    <td className="px-4 py-3">
+                      <p className="text-sm font-semibold text-zinc-800">{u.full_name || '—'}</p>
+                      <p className="text-xs text-zinc-400">{u.email}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-sm font-bold" style={{ color: PLAN_COLOR[u.plan] ?? '#374151' }}>
+                        {PLANS[u.plan]?.name ?? u.plan ?? 'Starter'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-zinc-400 hidden md:table-cell">
+                      {u.created_at ? new Date(u.created_at).toLocaleDateString('id-ID') : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-zinc-400 hidden lg:table-cell">
+                      {u.plan_expires_at ? new Date(u.plan_expires_at).toLocaleDateString('id-ID') : (u.plan === 'starter' ? 'Selamanya' : '—')}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <button onClick={() => setResetTarget(u)}
+                          className="flex items-center gap-1 text-xs font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 px-2 py-1.5 rounded-lg transition-colors">
+                          <KeyRound size={11} /> Reset PW
+                        </button>
+                        <button onClick={() => setUpgradeTarget(u)}
+                          className="flex items-center gap-1 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-2 py-1.5 rounded-lg transition-colors">
+                          <Zap size={11} /> Upgrade
+                        </button>
+                        <button onClick={() => handleDelete(u)}
+                          className="flex items-center gap-1 text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1.5 rounded-lg transition-colors">
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="px-4 py-2 border-t border-zinc-100 bg-zinc-50">
+            <p className="text-xs text-zinc-400">{filtered.length} user</p>
+          </div>
+        </div>
+      )}
+
+      <AnimatePresence>
+        {resetTarget && (
+          <ResetPasswordModal targetUser={resetTarget}
+            onDone={() => { setResetTarget(null); }}
+            onCancel={() => setResetTarget(null)} />
+        )}
+        {upgradeTarget && (
+          <UpgradeUserModal targetUser={upgradeTarget}
+            onDone={() => { setUpgradeTarget(null); fetchUsers(); }}
+            onCancel={() => setUpgradeTarget(null)} />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
+export default function AdminUpgrades({ user }) {
+  const [tab, setTab] = useState('requests');
+
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <ShieldCheck size={18} className="text-zinc-700" />
+        <h2 className="text-lg font-bold text-zinc-900">Admin Panel</h2>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex bg-zinc-100 rounded-xl p-1 gap-1 w-fit">
+        <button onClick={() => setTab('requests')}
+          className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg transition-all ${
+            tab === 'requests' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+          }`}>
+          <CheckCircle2 size={14} /> Upgrade Requests
+        </button>
+        <button onClick={() => setTab('users')}
+          className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg transition-all ${
+            tab === 'users' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+          }`}>
+          <Users size={14} /> Kelola User
+        </button>
+      </div>
+
+      {tab === 'requests' && <UpgradeRequestsTab user={user} />}
+      {tab === 'users'    && <ManageUsersTab    user={user} />}
     </div>
   );
 }

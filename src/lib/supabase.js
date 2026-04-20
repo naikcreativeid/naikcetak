@@ -308,6 +308,73 @@ export async function adminRejectUpgrade(requestId, adminEmail, reason = '') {
   return data;
 }
 
+export async function adminGetAllUsers() {
+  if (!isConfigured) return [];
+  const { data, error } = await supabase.rpc('admin_get_all_users');
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function adminCreateUser(email, password, fullName) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { full_name: fullName } },
+  });
+  if (error) throw error;
+  // Confirm email immediately via SECURITY DEFINER RPC so user can login without email link
+  await supabase.rpc('admin_confirm_user_email', { p_email: email });
+  // Ensure profile row exists
+  await supabase.from('user_profiles').upsert({
+    id:        data.user.id,
+    email,
+    full_name: fullName,
+    plan:      'starter',
+    plan_status: 'active',
+    usage_potong_kertas_count:  0,
+    usage_hitung_cetakan_count: 0,
+    usage_reset_at: new Date().toISOString(),
+  }, { onConflict: 'id' });
+  return data.user;
+}
+
+export async function adminResetUserPassword(userId, newPassword) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { error } = await supabase.rpc('admin_reset_user_password', {
+    p_user_id:     userId,
+    p_new_password: newPassword,
+  });
+  if (error) throw error;
+}
+
+export async function adminDirectUpgrade(userId, plan, months = 1) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { error } = await supabase.rpc('admin_direct_upgrade', {
+    p_user_id: userId,
+    p_plan:    plan,
+    p_months:  months,
+  });
+  if (error) throw error;
+}
+
+export async function adminDeleteUser(userId) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { error } = await supabase.rpc('admin_delete_user', { p_user_id: userId });
+  if (error) throw error;
+}
+
+// Forgot password tanpa email — user verifikasi email dulu, lalu langsung ganti password
+export async function resetPasswordByEmail(email, newPassword) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { data, error } = await supabase.rpc('reset_password_by_email', {
+    p_email:        email,
+    p_new_password: newPassword,
+  });
+  if (error) throw error;
+  return data; // 'ok' | 'not_found'
+}
+
 // ── Client Tracker ────────────────────────────────────────────────────────────
 
 function generateTrackingToken() {

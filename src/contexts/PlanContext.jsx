@@ -10,6 +10,7 @@ export function usePlanContext() {
     can: () => false, withinLimit: () => true,
     remainingUsage: () => Infinity, consumeUsage: async () => {},
     refreshPlan: async () => {}, planData: null,
+    isAdmin: false,
     showUpgrade: false, openUpgrade: () => {}, closeUpgrade: () => {},
   };
   return ctx;

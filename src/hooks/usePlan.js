@@ -40,6 +40,13 @@ export function usePlan(user) {
 
   useEffect(() => { fetchPlan(); }, [fetchPlan]);
 
+  // Re-fetch every 60s so plan status reflects after admin approves
+  useEffect(() => {
+    if (!user) return;
+    const id = setInterval(fetchPlan, 60_000);
+    return () => clearInterval(id);
+  }, [user, fetchPlan]);
+
   // ── Derived helpers ────────────────────────────────────────────────────────
 
   const isPlanActive = () => {
