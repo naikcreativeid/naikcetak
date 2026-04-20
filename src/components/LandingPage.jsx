@@ -8,7 +8,9 @@ import {
 } from 'lucide-react';
 import { PLANS, getEffectivePrice } from '../lib/plans';
 
-const APP_URL = 'https://app.naikcetak.com';
+const APP_URL      = 'https://app.naikcetak.com';
+const LOGIN_URL    = `${APP_URL}/#/login`;
+const REGISTER_URL = `${APP_URL}/#/login?tab=daftar`;
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -122,10 +124,10 @@ function Navbar() {
 
         {/* CTA */}
         <div className="hidden md:flex items-center gap-3">
-          <a href={APP_URL} className="text-sm font-semibold text-zinc-700 hover:text-zinc-900 px-4 py-2 rounded-lg border border-zinc-200 hover:border-zinc-300 transition-all">
+          <a href={LOGIN_URL} className="text-sm font-semibold text-zinc-700 hover:text-zinc-900 px-4 py-2 rounded-lg border border-zinc-200 hover:border-zinc-300 transition-all">
             Masuk
           </a>
-          <a href={`${APP_URL}`} data-event="hero_cta_nav"
+          <a href={REGISTER_URL} data-event="hero_cta_nav"
             className="text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors">
             Coba Gratis
           </a>
@@ -146,7 +148,7 @@ function Navbar() {
               <a key={href} href={href} onClick={() => setMenuOpen(false)}
                 className="block text-sm font-medium text-zinc-700 py-2">{label}</a>
             ))}
-            <a href={APP_URL}
+            <a href={REGISTER_URL}
               className="block text-center text-sm font-bold text-white bg-blue-600 py-3 rounded-xl mt-2">
               Coba Gratis Sekarang
             </a>
@@ -185,7 +187,7 @@ function HeroSection() {
         {/* CTA buttons */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
           className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
-          <a href={APP_URL} data-event="hero_cta_primary"
+          <a href={REGISTER_URL} data-event="hero_cta_primary"
             className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-4 rounded-xl text-base transition-all hover:shadow-lg hover:shadow-blue-200">
             Coba Gratis Sekarang <ArrowRight size={16} />
           </a>
@@ -389,7 +391,7 @@ function ScreenshotSection() {
                 </div>
                 <p className="text-base font-bold" style={{ color: current.accent }}>{current.label}</p>
                 <p className="text-sm text-zinc-500 mt-1">Fitur dalam pengembangan aktif</p>
-                <a href={APP_URL} className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg text-white transition-colors"
+                <a href={REGISTER_URL} className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg text-white transition-colors"
                   style={{ background: current.accent }}>
                   Coba Sekarang <ArrowRight size={13} />
                 </a>
@@ -505,7 +507,7 @@ function PricingSection() {
                   })}
                 </div>
 
-                <a href={APP_URL} data-event={`pricing_cta_${planId}`}
+                <a href={REGISTER_URL} data-event={`pricing_cta_${planId}`}
                   className={`w-full text-center py-3 rounded-xl font-bold text-sm transition-all ${
                     isPro
                       ? 'bg-blue-600 hover:bg-blue-700 text-white'
@@ -615,7 +617,7 @@ function CTASection() {
         <p className="text-blue-200 mb-8 text-lg">
           Daftar gratis, tidak perlu kartu kredit. Setup dalam 2 menit.
         </p>
-        <a href={APP_URL} data-event="cta_final"
+        <a href={REGISTER_URL} data-event="cta_final"
           className="inline-flex items-center gap-2 bg-white hover:bg-blue-50 text-blue-600 font-bold px-8 py-4 rounded-xl text-base transition-all hover:shadow-lg">
           Daftar Gratis Sekarang <ArrowRight size={16} />
         </a>

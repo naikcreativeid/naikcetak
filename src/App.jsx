@@ -28,6 +28,7 @@ import { suggestTechSpecs, generateBusinessAudit } from './lib/gemini';
 import { watchAuth, saveProject, isConfigured } from './lib/supabase';
 import LandingPage from './components/LandingPage';
 import FeatureGate from './components/FeatureGate';
+import AuthPage from './components/AuthPage';
 import { usePlan } from './hooks/usePlan';
 import { PlanContext } from './contexts/PlanContext';
 import UpgradeModal from './components/UpgradeModal';
@@ -173,6 +174,22 @@ export default function App() {
   const quotationMatch = hash.match(/^#\/quotation\/([A-Z0-9-]+)$/i);
   if (quotationMatch) {
     return <QuotationClientPage quotationId={quotationMatch[1]} />;
+  }
+
+  // ── Login route ──────────────────────────────────────────────────────────
+  if (hash.startsWith('#/login')) {
+    if (user) {
+      // Already logged in → redirect to dashboard
+      window.location.hash = '';
+      return null;
+    }
+    const tabParam = hash.includes('tab=daftar') ? 'daftar' : 'masuk';
+    return (
+      <AuthPage
+        defaultTab={tabParam}
+        onSuccess={() => { window.location.hash = ''; }}
+      />
+    );
   }
 
   // ── Landing page route ───────────────────────────────────────────────────
