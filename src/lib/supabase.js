@@ -350,12 +350,48 @@ export async function adminResetUserPassword(userId, newPassword) {
 
 export async function adminDirectUpgrade(userId, plan, months = 1) {
   if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
-  const { error } = await supabase.rpc('admin_direct_upgrade', {
-    p_user_id: userId,
-    p_plan:    plan,
-    p_months:  months,
-  });
+  // Coba admin_activate_plan dulu (lebih lengkap), fallback ke admin_direct_upgrade
+  try {
+    const { data, error } = await supabase.rpc('admin_activate_plan', {
+      p_user_id:       userId,
+      p_plan:          plan,
+      p_billing_cycle: months === 12 ? 'yearly' : 'monthly',
+      p_amount_paid:   0,
+      p_notes:         `Upgrade langsung oleh admin (${months} bulan)`,
+      p_is_renewal:    false,
+    });
+    if (error) throw error;
+    return data;
+  } catch {
+    const { error } = await supabase.rpc('admin_direct_upgrade', {
+      p_user_id: userId,
+      p_plan:    plan,
+      p_months:  months,
+    });
+    if (error) throw error;
+  }
+}
+
+export async function getSubscriptionStats() {
+  if (!isConfigured) return null;
+  const { data, error } = await supabase.rpc('get_subscription_stats');
+  if (error) return null;
+  return data;
+}
+
+export async function adminGetReminderList() {
+  if (!isConfigured) return [];
+  const { data, error } = await supabase.rpc('admin_get_reminder_list');
   if (error) throw error;
+  return data ?? [];
+}
+
+export async function adminMarkReminderSent(userId, reminderType) {
+  if (!isConfigured) return;
+  await supabase.rpc('admin_mark_reminder_sent', {
+    p_user_id:       userId,
+    p_reminder_type: reminderType,
+  });
 }
 
 export async function adminDeleteUser(userId) {

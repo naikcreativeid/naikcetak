@@ -4,10 +4,12 @@ import {
   ShieldCheck, Search, RefreshCw, CheckCircle2, XCircle,
   Eye, Phone, Mail, ExternalLink, Loader2, Clock, UserPlus,
   KeyRound, Trash2, Zap, Users, ChevronDown, ChevronUp,
+  Bell, TrendingUp, AlertCircle, Timer,
 } from 'lucide-react';
 import {
   adminGetUpgradeRequests, adminApproveUpgrade, adminRejectUpgrade,
   adminGetAllUsers, adminCreateUser, adminResetUserPassword, adminDirectUpgrade, adminDeleteUser,
+  getSubscriptionStats, adminGetReminderList, adminMarkReminderSent,
 } from '../lib/supabase';
 import { PLANS } from '../lib/plans';
 import { formatRp } from '../lib/masterData';
@@ -321,6 +323,193 @@ function RequestRow({ req, adminEmail, onApproved, onRejected }) {
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+// ── Stats Cards ──────────────────────────────────────────────────────────────
+function StatsCards({ stats }) {
+  if (!stats) return null;
+  const fmt = (n) => new Intl.NumberFormat('id-ID').format(n ?? 0);
+
+  const cards = [
+    { label: 'Total User',      value: stats.total_users,      icon: Users,       color: 'bg-zinc-100 text-zinc-700' },
+    { label: 'Pro Aktif',       value: stats.pro_users,        icon: Zap,         color: 'bg-blue-100 text-blue-700' },
+    { label: 'Business Aktif',  value: stats.business_users,   icon: TrendingUp,  color: 'bg-amber-100 text-amber-700' },
+    { label: 'Expiring 7 Hari', value: stats.expiring_7days,   icon: Timer,       color: 'bg-orange-100 text-orange-700' },
+    { label: 'Grace Period',    value: stats.grace_period,     icon: AlertCircle, color: 'bg-red-100 text-red-700' },
+    { label: 'Pending Bayar',   value: stats.pending_approval, icon: Clock,       color: 'bg-amber-100 text-amber-700' },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-2">
+      {cards.map(({ label, value, icon: Icon, color }) => (
+        <div key={label} className="card p-3 flex flex-col gap-1">
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${color}`}>
+            <Icon size={13} />
+          </div>
+          <p className="text-xl font-bold text-zinc-900 leading-none">{value ?? 0}</p>
+          <p className="text-[11px] text-zinc-500 leading-tight">{label}</p>
+        </div>
+      ))}
+      <div className="card p-3 flex flex-col gap-1 col-span-2 sm:col-span-3 lg:col-span-6 lg:hidden">
+        <p className="text-xs text-zinc-500">Estimasi MRR</p>
+        <p className="text-lg font-bold text-zinc-900">Rp {fmt(stats.mrr_estimate)}</p>
+      </div>
+      <div className="hidden lg:block card p-3 flex-col gap-1" style={{ display: 'none' }}>
+      </div>
+    </div>
+  );
+}
+
+// ── Tab: Reminders ────────────────────────────────────────────────────────────
+function RemindersTab({ user }) {
+  const [reminders, setReminders] = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [sent,      setSent]      = useState(new Set());
+
+  const fetch = useCallback(async () => {
+    setLoading(true);
+    try { setReminders(await adminGetReminderList()); }
+    catch (err) { alert('Gagal: ' + err.message); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetch(); }, [fetch]);
+
+  const handleSent = async (r) => {
+    try {
+      await adminMarkReminderSent(r.user_id, r.reminder_type);
+      setSent(prev => new Set([...prev, `${r.user_id}:${r.reminder_type}`]));
+    } catch (err) { alert('Gagal: ' + err.message); }
+  };
+
+  const PLAN_COLOR = { starter: '#6B7280', pro: '#2563EB', business: '#D97706' };
+
+  const REMINDER_META = {
+    '7_days':      { label: '7 Hari',       bg: 'bg-blue-100',   text: 'text-blue-700'   },
+    '3_days':      { label: '3 Hari',       bg: 'bg-orange-100', text: 'text-orange-700' },
+    '1_day':       { label: '1 Hari',       bg: 'bg-red-100',    text: 'text-red-700'    },
+    'grace_period':{ label: 'Grace Period', bg: 'bg-zinc-100',   text: 'text-zinc-600'   },
+  };
+
+  const buildWaMsg = (r) => {
+    const name = r.company_name || r.full_name || r.user_email;
+    const planName = r.plan?.toUpperCase() ?? 'PRO';
+    const expDate = r.plan_expires_at
+      ? new Date(r.plan_expires_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+      : '—';
+    const graceEnd = r.grace_period_ends_at
+      ? new Date(r.grace_period_ends_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+      : '—';
+
+    if (r.reminder_type === 'grace_period') {
+      return encodeURIComponent(
+        `Halo ${name}! 👋\n\nPaket *${planName}* Anda di naikcetak sudah berakhir.\n\n` +
+        `⚠️ Anda masih bisa mengakses semua fitur hingga *${graceEnd}* (grace period 3 hari).\n\n` +
+        `Perpanjang sekarang agar akses tidak terputus:\n👉 Hubungi admin untuk konfirmasi perpanjangan.\n\n` +
+        `Terima kasih! 🙏`
+      );
+    }
+    const days = r.reminder_type === '7_days' ? '7 hari' : r.reminder_type === '3_days' ? '3 hari' : '1 hari';
+    return encodeURIComponent(
+      `Halo ${name}! 👋\n\nIni pengingat dari naikcetak 🖨\n\n` +
+      `Paket *${planName}* Anda akan berakhir pada *${expDate}* (${days} lagi).\n\n` +
+      `Perpanjang sekarang agar tidak terputus akses:\n👉 Hubungi admin untuk konfirmasi.\n\n` +
+      `Ada pertanyaan? Balas pesan ini. Terima kasih! 🙏`
+    );
+  };
+
+  if (loading) return (
+    <div className="card p-12 flex items-center justify-center gap-3 text-zinc-400">
+      <Loader2 size={18} className="animate-spin" /><span className="text-sm">Memuat...</span>
+    </div>
+  );
+
+  if (reminders.length === 0) return (
+    <div className="card p-12 text-center text-zinc-400 text-sm">
+      Tidak ada user yang perlu diingatkan saat ini.
+    </div>
+  );
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-zinc-500">{reminders.length} user perlu dihubungi</p>
+        <button onClick={fetch} disabled={loading} className="btn-ghost flex items-center gap-1.5 text-sm">
+          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
+        </button>
+      </div>
+      <div className="card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-zinc-50 border-b border-zinc-200 text-left">
+                <th className="px-4 py-3 text-xs font-semibold text-zinc-500">User</th>
+                <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Plan</th>
+                <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Jenis Reminder</th>
+                <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Expire</th>
+                <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reminders.map((r, i) => {
+                const key   = `${r.user_id}:${r.reminder_type}`;
+                const meta  = REMINDER_META[r.reminder_type] ?? REMINDER_META['7_days'];
+                const done  = sent.has(key);
+                const phone = r.phone_number?.replace(/\D/g, '').replace(/^0/, '62');
+                return (
+                  <tr key={i} className={`border-b border-zinc-100 transition-colors ${done ? 'opacity-40' : 'hover:bg-zinc-50/50'}`}>
+                    <td className="px-4 py-3">
+                      <p className="text-sm font-semibold text-zinc-800">{r.company_name || r.full_name || '—'}</p>
+                      <p className="text-xs text-zinc-400">{r.user_email}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-sm font-bold" style={{ color: PLAN_COLOR[r.plan] }}>
+                        {r.plan?.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${meta.bg} ${meta.text}`}>
+                        {meta.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-zinc-500">
+                      {r.plan_expires_at ? new Date(r.plan_expires_at).toLocaleDateString('id-ID') : (
+                        r.grace_period_ends_at ? `Grace s/d ${new Date(r.grace_period_ends_at).toLocaleDateString('id-ID')}` : '—'
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        {phone ? (
+                          <a href={`https://wa.me/${phone}?text=${buildWaMsg(r)}`}
+                            target="_blank" rel="noopener noreferrer"
+                            onClick={() => handleSent(r)}
+                            className="flex items-center gap-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-lg transition-colors">
+                            <Phone size={11} /> Kirim WA
+                          </a>
+                        ) : (
+                          <span className="text-xs text-zinc-300">No HP tidak ada</span>
+                        )}
+                        {!done && (
+                          <button onClick={() => handleSent(r)}
+                            className="text-xs text-zinc-400 hover:text-zinc-600 px-2 py-1.5 rounded-lg hover:bg-zinc-100 transition-colors">
+                            Tandai Terkirim
+                          </button>
+                        )}
+                        {done && <span className="text-xs text-emerald-600 font-semibold">✓ Terkirim</span>}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p className="text-xs text-zinc-400">
+        Catatan: Klik "Kirim WA" akan membuka WhatsApp dengan pesan sudah terisi. Setelah kirim, status otomatis ditandai.
+      </p>
+    </div>
   );
 }
 
@@ -650,34 +839,53 @@ function ManageUsersTab({ user }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function AdminUpgrades({ user }) {
-  const [tab, setTab] = useState('requests');
+  const [tab,   setTab]   = useState('requests');
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    getSubscriptionStats().then(setStats).catch(() => {});
+  }, []);
+
+  const fmtRp = (n) => 'Rp ' + new Intl.NumberFormat('id-ID').format(n ?? 0);
 
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center gap-2">
-        <ShieldCheck size={18} className="text-zinc-700" />
-        <h2 className="text-lg font-bold text-zinc-900">Admin Panel</h2>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-2">
+          <ShieldCheck size={18} className="text-zinc-700" />
+          <h2 className="text-lg font-bold text-zinc-900">Admin Panel</h2>
+        </div>
+        {stats && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+            <TrendingUp size={13} className="text-emerald-600" />
+            <span className="text-sm font-bold text-emerald-700">Est. MRR: {fmtRp(stats.mrr_estimate)}</span>
+          </div>
+        )}
       </div>
+
+      {/* Stats Cards */}
+      <StatsCards stats={stats} />
 
       {/* Tabs */}
-      <div className="flex bg-zinc-100 rounded-xl p-1 gap-1 w-fit">
-        <button onClick={() => setTab('requests')}
-          className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg transition-all ${
-            tab === 'requests' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
-          }`}>
-          <CheckCircle2 size={14} /> Upgrade Requests
-        </button>
-        <button onClick={() => setTab('users')}
-          className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg transition-all ${
-            tab === 'users' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
-          }`}>
-          <Users size={14} /> Kelola User
-        </button>
+      <div className="flex bg-zinc-100 rounded-xl p-1 gap-1 flex-wrap">
+        {[
+          { id: 'requests', label: 'Upgrade Requests', icon: CheckCircle2 },
+          { id: 'users',    label: 'Kelola User',      icon: Users        },
+          { id: 'reminders',label: 'Reminders',        icon: Bell         },
+        ].map(({ id, label, icon: Icon }) => (
+          <button key={id} onClick={() => setTab(id)}
+            className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg transition-all ${
+              tab === id ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+            }`}>
+            <Icon size={14} /> {label}
+          </button>
+        ))}
       </div>
 
-      {tab === 'requests' && <UpgradeRequestsTab user={user} />}
-      {tab === 'users'    && <ManageUsersTab    user={user} />}
+      {tab === 'requests'  && <UpgradeRequestsTab user={user} />}
+      {tab === 'users'     && <ManageUsersTab     user={user} />}
+      {tab === 'reminders' && <RemindersTab       user={user} />}
     </div>
   );
 }
