@@ -211,6 +211,7 @@ SELECT cron.schedule(
 );
 
 -- ── Ambil daftar user yang perlu direminder (untuk admin panel) ──────────────
+DROP FUNCTION IF EXISTS admin_get_reminder_list();
 CREATE OR REPLACE FUNCTION admin_get_reminder_list()
 RETURNS TABLE(
   user_id             UUID,
@@ -454,6 +455,7 @@ $$;
 -- BAGIAN 2D — admin_get_all_users (update dengan field lengkap)
 -- ============================================================
 
+DROP FUNCTION IF EXISTS admin_get_all_users();
 CREATE OR REPLACE FUNCTION admin_get_all_users()
 RETURNS TABLE(
   id                  UUID,
