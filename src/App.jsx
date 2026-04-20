@@ -35,6 +35,7 @@ import { PlanContext } from './contexts/PlanContext';
 import UpgradeModal from './components/UpgradeModal';
 import AdminUpgrades from './components/AdminUpgrades';
 import { ADMIN_EMAILS } from './lib/plans';
+import ResetPasswordPage from './components/ResetPasswordPage';
 
 const INIT_IDENTITY = { productName: '', dimLength: '', dimWidth: '', dimHeight: '', gsm: '' };
 const INIT_SPECS    = { planoLength: 0, planoWidth: 0, flatLength: 0, flatWidth: 0, grip: 2, wasteRate: 5, colorCount: 4 };
@@ -175,6 +176,16 @@ export default function App() {
   const quotationMatch = hash.match(/^#\/quotation\/([A-Z0-9-]+)$/i);
   if (quotationMatch) {
     return <QuotationClientPage quotationId={quotationMatch[1]} />;
+  }
+
+  // ── Reset password route ─────────────────────────────────────────────────
+  if (hash.startsWith('#/reset-password')) {
+    return (
+      <ResetPasswordPage
+        hasSession={!!user}
+        onLogin={() => { window.location.hash = '#/login'; }}
+      />
+    );
   }
 
   // ── Login route ──────────────────────────────────────────────────────────
