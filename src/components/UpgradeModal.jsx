@@ -12,7 +12,6 @@ const PRO_FEATURES = [
     { label: 'Export PDF Invoice',    desc: '+ Quotation profesional' },
     { label: 'Groq AI',               desc: 'Brief Analyzer & Email' },
     { label: 'WhatsApp Integration',  desc: 'kirim langsung dari app' },
-    { label: 'Client Tracker publik', desc: 'link tracking untuk klien' },
   ],
   [
     { label: 'Master Kertas',         desc: 'tidak terbatas' },

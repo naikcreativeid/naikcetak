@@ -28,7 +28,11 @@ export function usePlan(user) {
         setPlanData({
           plan:               profile.plan          ?? 'starter',
           planStatus:         profile.plan_status   ?? 'active',
-          planExpiresAt:      profile.plan_expires_at  ? new Date(profile.plan_expires_at) : null,
+          planExpiresAt:      profile.plan_expires_at      ? new Date(profile.plan_expires_at)      : null,
+          planStartedAt:      profile.plan_started_at      ? new Date(profile.plan_started_at)      : null,
+          gracePeriodEndsAt:  profile.grace_period_ends_at ? new Date(profile.grace_period_ends_at) : null,
+          billingCycle:       profile.billing_cycle ?? 'monthly',
+          renewalCount:       profile.renewal_count ?? 0,
           usagePotongKertas:  profile.usage_potong_kertas_count  ?? 0,
           usageHitungCetakan: profile.usage_hitung_cetakan_count ?? 0,
           usageResetAt:       profile.usage_reset_at ? new Date(profile.usage_reset_at) : null,

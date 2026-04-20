@@ -5,6 +5,15 @@ const supabaseKey  = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const isConfigured = Boolean(supabaseUrl && supabaseKey);
 
+if (import.meta.env.DEV) {
+  console.log('[Supabase] URL:', supabaseUrl ? '✓ ' + supabaseUrl : '✗ MISSING');
+  console.log('[Supabase] Key:', supabaseKey ? '✓ ' + supabaseKey.slice(0, 20) + '...' : '✗ MISSING');
+}
+
+if (!isConfigured) {
+  console.error('[Supabase] ✗ VITE_SUPABASE_URL atau VITE_SUPABASE_ANON_KEY tidak ditemukan di .env');
+}
+
 export const supabase = isConfigured
   ? createClient(supabaseUrl, supabaseKey)
   : null;
@@ -23,9 +32,15 @@ export async function register(email, password) {
   return data;
 }
 
+const LANDING_URL = import.meta.env.VITE_LANDING_URL ?? 'https://naikcetak.com';
+
 export async function logout() {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
+  try {
+    await supabase.auth.signOut();
+  } catch (err) {
+    console.error('[Logout] signOut error:', err);
+  }
+  window.location.href = LANDING_URL;
 }
 
 export function watchAuth(callback) {
@@ -317,25 +332,42 @@ export async function adminGetAllUsers() {
 
 export async function adminCreateUser(email, password, fullName) {
   if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+
+  // Sanitasi input — trim + lowercase agar tidak ada spasi tersembunyi
+  const cleanEmail    = (email ?? '').toString().trim().toLowerCase();
+  const cleanPassword = (password ?? '').toString().trim();
+  const cleanName     = (fullName ?? '').toString().trim();
+
+  if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+    throw new Error(`Format email tidak valid: "${cleanEmail}"`);
+  }
+  if (cleanPassword.length < 8) {
+    throw new Error('Password minimal 8 karakter');
+  }
+
   const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { full_name: fullName } },
+    email:    cleanEmail,
+    password: cleanPassword,
+    options:  { data: { full_name: cleanName } },
   });
   if (error) throw error;
-  // Confirm email immediately via SECURITY DEFINER RPC so user can login without email link
-  await supabase.rpc('admin_confirm_user_email', { p_email: email });
-  // Ensure profile row exists
+  if (!data.user) throw new Error('Gagal membuat akun: user tidak terbentuk');
+
+  // Konfirmasi email langsung via RPC agar user bisa login tanpa klik link email
+  await supabase.rpc('admin_confirm_user_email', { p_email: cleanEmail });
+
+  // Pastikan baris di user_profiles ada
   await supabase.from('user_profiles').upsert({
     id:        data.user.id,
-    email,
-    full_name: fullName,
+    email:     cleanEmail,
+    full_name: cleanName,
     plan:      'starter',
     plan_status: 'active',
     usage_potong_kertas_count:  0,
     usage_hitung_cetakan_count: 0,
     usage_reset_at: new Date().toISOString(),
   }, { onConflict: 'id' });
+
   return data.user;
 }
 
@@ -392,6 +424,53 @@ export async function adminMarkReminderSent(userId, reminderType) {
     p_user_id:       userId,
     p_reminder_type: reminderType,
   });
+}
+
+export async function adminActivatePlan(userId, plan, billingCycle, {
+  amountPaid = 0, paymentMethod = null, isRenewal = false, notes = null,
+  upgradeRequestId = null,
+} = {}) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { data, error } = await supabase.rpc('admin_activate_plan', {
+    p_user_id:            userId,
+    p_plan:               plan,
+    p_billing_cycle:      billingCycle,
+    p_amount_paid:        amountPaid,
+    p_payment_method:     paymentMethod,
+    p_is_renewal:         isRenewal,
+    p_notes:              notes,
+    p_upgrade_request_id: upgradeRequestId,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function adminGetUserHistory(userId) {
+  if (!isConfigured) return [];
+  const { data, error } = await supabase.rpc('admin_get_user_history', { p_user_id: userId });
+  if (error) return [];
+  return data ?? [];
+}
+
+export async function getUserSubscriptionHistory(userId) {
+  if (!isConfigured || !userId) return [];
+  const { data, error } = await supabase
+    .from('subscription_history')
+    .select('id, action, plan_from, plan_to, billing_cycle, period_start, period_end, amount_paid, created_at, notes')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (error) return [];
+  return data ?? [];
+}
+
+export async function adminDowngradeUser(userId, notes = '') {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { error } = await supabase.rpc('admin_downgrade_user', {
+    p_user_id: userId,
+    p_notes:   notes,
+  });
+  if (error) throw error;
 }
 
 export async function adminDeleteUser(userId) {

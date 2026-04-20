@@ -23,10 +23,9 @@ import HitungCetakan from './components/HitungCetakan';
 import MasterKertas from './components/MasterKertas';
 import MasterFinishing from './components/MasterFinishing';
 import MasterMesin from './components/MasterMesin';
-import ClientTracker from './components/ClientTracker';
 import { calculateImposition, calculateResults, calculateBulkSimulation } from './utils/calculator';
 import { suggestTechSpecs, generateBusinessAudit } from './lib/gemini';
-import { watchAuth, saveProject, isConfigured } from './lib/supabase';
+import { supabase, watchAuth, saveProject, isConfigured } from './lib/supabase';
 import LandingPage from './components/LandingPage';
 import FeatureGate from './components/FeatureGate';
 import AuthPage from './components/AuthPage';
@@ -36,6 +35,8 @@ import UpgradeModal from './components/UpgradeModal';
 import AdminUpgrades from './components/AdminUpgrades';
 import { ADMIN_EMAILS } from './lib/plans';
 import ResetPasswordPage from './components/ResetPasswordPage';
+import SubscriptionBanner from './components/SubscriptionBanner';
+import UserSubscription from './components/UserSubscription';
 
 const INIT_IDENTITY = { productName: '', dimLength: '', dimWidth: '', dimHeight: '', gsm: '' };
 const INIT_SPECS    = { planoLength: 0, planoWidth: 0, flatLength: 0, flatWidth: 0, grip: 2, wasteRate: 5, colorCount: 4 };
@@ -55,6 +56,7 @@ export default function App() {
   const [auditData, setAuditData]       = useState(null);
 
   const [user, setUser]                 = useState(null);
+  const [authReady, setAuthReady]       = useState(false);
   const [showAuth, setShowAuth]         = useState(false);
   const [showUpgrade, setShowUpgrade]   = useState(false);
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
@@ -72,8 +74,15 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handler);
   }, []);
 
-  // ── Auth listener ────────────────────────────────────────────────────────
-  useEffect(() => watchAuth(setUser), []);
+  // ── Auth listener — INITIAL_SESSION marks when auth is determined ────────
+  useEffect(() => {
+    if (!supabase) { setAuthReady(true); return; }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+      if (event === 'INITIAL_SESSION') setAuthReady(true);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   // ── Real-time HPP Calculation Engine ────────────────────────────────────
   useEffect(() => {
@@ -167,6 +176,20 @@ export default function App() {
   const updateCost = useCallback((k, v) => setCosts((p)  => ({ ...p, [k]: parseFloat(v) || 0 })), []);
   const setMargin  = useCallback((m)    => setCosts((p)  => ({ ...p, margin: m })), []);
 
+  // ── Auth loading screen — tunggu Supabase tentukan session ─────────────
+  if (!authReady) {
+    return (
+      <div className="min-h-screen bg-[#F7F7F5] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 bg-zinc-900 rounded-2xl flex items-center justify-center">
+            <span className="text-white font-bold text-lg">n</span>
+          </div>
+          <div className="w-5 h-5 border-2 border-zinc-300 border-t-zinc-700 rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
   // ── Public routes (must be after all hooks) ─────────────────────────────
   const trackMatch = hash.match(/^#\/track(?:\/([A-Za-z0-9_-]+))?$/);
   if (trackMatch) {
@@ -212,6 +235,21 @@ export default function App() {
     return <LandingPage />;
   }
 
+  // ── Auth gate — unauthenticated users: redirect to landing in prod, show login in dev ──
+  if (!user) {
+    const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    if (!isLocalDev) {
+      window.location.href = import.meta.env.VITE_LANDING_URL ?? 'https://naikcetak.com';
+      return null;
+    }
+    return (
+      <AuthPage
+        defaultTab="masuk"
+        onSuccess={() => {}}
+      />
+    );
+  }
+
   // Expose openUpgrade via context
   const planContextValue = {
     ...planHook,
@@ -237,7 +275,10 @@ export default function App() {
       {/* Content area — shifted right on desktop to clear fixed sidebar */}
       <div className="flex-1 md:ml-56 pt-14 md:pt-0 min-w-0">
       <main className="max-w-7xl mx-auto px-4 py-6 lg:py-8">
-        {activePage === 'dashboard' ? (
+        {user && !isAdmin && <SubscriptionBanner onManageClick={() => setActivePage('subscription')} />}
+        {activePage === 'subscription' && user ? (
+          <UserSubscription user={user} onUpgradeClick={() => setShowUpgrade(true)} />
+        ) : activePage === 'dashboard' ? (
           <Dashboard user={user} onNavigate={setActivePage} />
         ) : activePage === 'invoice' ? (
           <FeatureGate feature="invoice">
@@ -274,8 +315,6 @@ export default function App() {
             initialData={carryOverData}
             onUpgradeClick={() => user ? setShowUpgrade(true) : setShowAuth(true)}
           />
-        ) : activePage === 'clientTracker' ? (
-          <ClientTracker user={user} />
         ) : activePage === 'masterKertas' ? (
           <MasterKertas />
         ) : activePage === 'masterFinishing' ? (

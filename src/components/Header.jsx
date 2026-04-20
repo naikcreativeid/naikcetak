@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package2, LogOut, User, Calculator, FileText, Brain,
   LayoutDashboard, Mail, Package, Timer, Menu, X, Zap,
-  Scissors, Printer, Database, Layers, Cpu, ShieldCheck, Share2,
+  Scissors, Printer, Database, Layers, Cpu, ShieldCheck, CreditCard,
 } from 'lucide-react';
 import { logout } from '../lib/supabase';
 import { PLANS } from '../lib/plans';
@@ -22,7 +22,6 @@ const NAV_GROUPS = [
       { id: 'invoice',       Icon: FileText,   label: 'Invoice'         },
       { id: 'quotation',     Icon: Timer,      label: 'Quotation'       },
       { id: 'tracking',      Icon: Package,    label: 'Tracking Order'  },
-      { id: 'clientTracker', Icon: Share2,     label: 'Client Tracker', badge: 'Baru', badgeColor: 'blue' },
     ],
   },
   {
@@ -82,6 +81,19 @@ function NavItems({ activePage, onNav, isAdmin }) {
           </div>
         </div>
       ))}
+      {!isAdmin && (
+        <div>
+          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-2 mb-1.5">AKUN</p>
+          <button onClick={() => onNav('subscription')}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all text-left ${
+              activePage === 'subscription'
+                ? 'bg-zinc-900 text-white'
+                : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
+            }`}>
+            <CreditCard size={15} className="shrink-0" /> Status Langganan
+          </button>
+        </div>
+      )}
       {isAdmin && (
         <div>
           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-2 mb-1.5">ADMIN</p>
@@ -91,7 +103,7 @@ function NavItems({ activePage, onNav, isAdmin }) {
                 ? 'bg-zinc-900 text-white'
                 : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
             }`}>
-            <ShieldCheck size={15} className="shrink-0" /> Upgrade Requests
+            <ShieldCheck size={15} className="shrink-0" /> Admin Panel
           </button>
         </div>
       )}

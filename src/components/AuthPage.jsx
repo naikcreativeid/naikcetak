@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package2, Mail, Lock, Eye, EyeOff, User, Scissors, Printer, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { handleAuthError, AUTH_CODE } from '../lib/authErrors';
 
 // ── Google icon SVG ───────────────────────────────────────────────────────────
 function GoogleIcon() {
@@ -156,23 +157,33 @@ function LoginForm({ onSwitch, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true); setError('');
+
+    if (!supabase) {
+      setError('Konfigurasi Supabase belum lengkap. Hubungi admin.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+      console.log('[Login] Mencoba masuk:', email);
+      const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
+      console.log('[Login] Response:', { session: !!data?.session, error: err?.message, code: err?.code });
+
       if (err) {
-        if (err.message.includes('Invalid login credentials')) {
-          setError('Email atau password tidak sesuai.');
-        } else if (err.message.includes('Email not confirmed')) {
-          setError('Konfirmasi email Anda terlebih dahulu.');
-        } else if (err.message.includes('User not found') || err.message.includes('No user found')) {
+        const mapped = handleAuthError(err);
+        if (mapped === AUTH_CODE.NOT_FOUND) {
           setError('Akun tidak ditemukan. Daftar sekarang?');
+        } else if (mapped === AUTH_CODE.NEEDS_CONFIRM) {
+          setError('Email belum dikonfirmasi. Cek inbox/spam, atau hubungi admin untuk aktivasi manual.');
         } else {
-          setError('Koneksi bermasalah. Coba lagi.');
+          setError(mapped);
         }
       } else {
         onSuccess?.();
       }
-    } catch {
-      setError('Koneksi bermasalah. Coba lagi.');
+    } catch (err) {
+      console.error('[Login] Exception:', err);
+      setError(handleAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -278,22 +289,37 @@ function RegisterForm({ onSwitch, onSuccess }) {
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setErrors({}); setLoading(true);
+
+    if (!supabase) {
+      setErrors({ general: 'Konfigurasi Supabase belum lengkap. Hubungi admin.' });
+      setLoading(false);
+      return;
+    }
+
     try {
-      const { error: err } = await supabase.auth.signUp({
+      console.log('[Register] Mencoba daftar:', email);
+      const { data, error: err } = await supabase.auth.signUp({
         email, password,
         options: { data: { full_name: name } },
       });
+      console.log('[Register] Response:', { user: data?.user?.id, session: !!data?.session, error: err?.message });
+
       if (err) {
-        if (err.message.includes('already registered') || err.message.includes('User already registered')) {
+        const mapped = handleAuthError(err);
+        if (mapped === AUTH_CODE.EMAIL_EXISTS) {
           setErrors({ email: 'Email ini sudah terdaftar. Masuk di sini?' });
         } else {
-          setErrors({ general: 'Koneksi bermasalah. Coba lagi.' });
+          setErrors({ general: mapped });
         }
+      } else if (data?.user && !data?.session) {
+        // Email confirmation ON — user dibuat tapi belum dapat session
+        setErrors({ general: 'Akun berhasil dibuat! Cek email Anda untuk konfirmasi sebelum login.' });
       } else {
         onSuccess?.('registered');
       }
-    } catch {
-      setErrors({ general: 'Koneksi bermasalah. Coba lagi.' });
+    } catch (err) {
+      console.error('[Register] Exception:', err);
+      setErrors({ general: handleAuthError(err) });
     } finally {
       setLoading(false);
     }
@@ -387,7 +413,17 @@ function RegisterForm({ onSwitch, onSuccess }) {
           {errors.agree && <p className="text-red-500 text-xs mt-1">{errors.agree}</p>}
         </div>
 
-        {errors.general && <p className="text-red-500 text-xs">{errors.general}</p>}
+        {errors.general && (
+          errors.general.includes('Cek email') ? (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-blue-800 text-xs">
+              {errors.general}
+            </div>
+          ) : (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+              <p className="text-red-600 text-xs">{errors.general}</p>
+            </div>
+          )
+        )}
 
         <button type="submit" disabled={loading}
           className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2">

@@ -13,6 +13,7 @@ import {
 } from '../lib/supabase';
 import { PLANS } from '../lib/plans';
 import { formatRp } from '../lib/masterData';
+import AdminSubscriptionDashboard from './AdminSubscriptionDashboard';
 
 const PAYMENT_INFO_WA = import.meta.env.VITE_ADMIN_WA ?? '6281234567890';
 
@@ -870,9 +871,10 @@ export default function AdminUpgrades({ user }) {
       {/* Tabs */}
       <div className="flex bg-zinc-100 rounded-xl p-1 gap-1 flex-wrap">
         {[
-          { id: 'requests', label: 'Upgrade Requests', icon: CheckCircle2 },
-          { id: 'users',    label: 'Kelola User',      icon: Users        },
-          { id: 'reminders',label: 'Reminders',        icon: Bell         },
+          { id: 'requests',      label: 'Upgrade Requests', icon: CheckCircle2 },
+          { id: 'users',         label: 'Kelola User',      icon: Users        },
+          { id: 'reminders',     label: 'Reminders',        icon: Bell         },
+          { id: 'subscriptions', label: 'Subscriptions',    icon: TrendingUp   },
         ].map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => setTab(id)}
             className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg transition-all ${
@@ -883,9 +885,10 @@ export default function AdminUpgrades({ user }) {
         ))}
       </div>
 
-      {tab === 'requests'  && <UpgradeRequestsTab user={user} />}
-      {tab === 'users'     && <ManageUsersTab     user={user} />}
-      {tab === 'reminders' && <RemindersTab       user={user} />}
+      {tab === 'requests'      && <UpgradeRequestsTab        user={user} />}
+      {tab === 'users'         && <ManageUsersTab            user={user} />}
+      {tab === 'reminders'     && <RemindersTab              user={user} />}
+      {tab === 'subscriptions' && <AdminSubscriptionDashboard />}
     </div>
   );
 }
