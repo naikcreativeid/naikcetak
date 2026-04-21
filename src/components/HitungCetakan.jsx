@@ -211,8 +211,8 @@ export default function HitungCetakan({ user, planHook, initialData, onUpgradeCl
   return (
     <div className="space-y-5 max-w-7xl mx-auto">
       <div>
-        <h1 className="text-xl font-black text-zinc-900">Hitung Cetakan</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Kalkulasi biaya produksi cetak lengkap: kertas + ongkos + finishing + profit</p>
+        <h1 className="text-xl font-black text-zinc-900">Kalkulator Biaya Cetak</h1>
+        <p className="text-sm text-zinc-500 mt-0.5">Hitung total biaya produksi cetak secara lengkap: kertas, mesin, finishing, ongkir, dan margin keuntungan</p>
       </div>
 
       {/* Usage limit banner */}
@@ -247,7 +247,7 @@ export default function HitungCetakan({ user, planHook, initialData, onUpgradeCl
       {initialData?.namaCetakan && (
         <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700">
           <Printer size={13} className="shrink-0" />
-          <span>Data di-carry-over dari <strong>Potong Kertas</strong> — silakan lengkapi field yang tersisa.</span>
+          <span>Data di-carry-over dari <strong>Kalkulator Potong Kertas</strong> — silakan lengkapi field yang tersisa.</span>
         </div>
       )}
 
@@ -255,25 +255,25 @@ export default function HitungCetakan({ user, planHook, initialData, onUpgradeCl
 
         {/* ── COL 1 ──────────────────────────────────────────────────────────── */}
         <div className="space-y-4">
-          <Section title="Informasi Cetakan">
+          <Section title="Detail Pekerjaan">
             <div>
-              <label className="label">Nama Cetakan *</label>
-              <input className="input-field" placeholder="Nama job / order"
+              <label className="label">Nama Pekerjaan / Pelanggan *</label>
+              <input className="input-field" placeholder="Nama job cetak atau nama klien"
                 value={form.namaCetakan} onChange={e => set('namaCetakan', e.target.value)} />
             </div>
             <div>
-              <label className="label">Jumlah Cetakan *</label>
+              <label className="label">Jumlah yang Dicetak *</label>
               <input type="number" min="1" className="input-field" placeholder="3000"
                 value={form.jumlahCetakan} onChange={e => set('jumlahCetakan', e.target.value)} />
             </div>
           </Section>
 
-          <Section title="Harga Bahan">
+          <Section title="Biaya Kertas">
             <div>
-              <label className="label">Nama Bahan *</label>
+              <label className="label">Jenis Kertas *</label>
               <select className="input-field" value={form.namaBahan}
                 onChange={e => handleSelectKertas(e.target.value)}>
-                <option value="">— Pilih dari master —</option>
+                <option value="">— Pilih dari Database Kertas —</option>
                 {masterKertas.map(k => (
                   <option key={k.id} value={k.nama}>{k.nama} ({k.gsm} gsm)</option>
                 ))}
@@ -281,28 +281,28 @@ export default function HitungCetakan({ user, planHook, initialData, onUpgradeCl
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="label">Uk. Bahan P (cm)</label>
+                <label className="label">Lebar Kertas (cm)</label>
                 <input type="number" className="input-field" placeholder="79"
                   value={form.ukuranBahanP} onChange={e => set('ukuranBahanP', e.target.value)} />
               </div>
               <div>
-                <label className="label">Uk. Bahan L (cm)</label>
+                <label className="label">Tinggi Kertas (cm)</label>
                 <input type="number" className="input-field" placeholder="109"
                   value={form.ukuranBahanL} onChange={e => set('ukuranBahanL', e.target.value)} />
               </div>
               <div>
-                <label className="label">Uk. Potong P (cm)</label>
+                <label className="label">Lebar Potongan (cm)</label>
                 <input type="number" className="input-field" placeholder="20"
                   value={form.ukuranPotongP} onChange={e => set('ukuranPotongP', e.target.value)} />
               </div>
               <div>
-                <label className="label">Uk. Potong L (cm)</label>
+                <label className="label">Tinggi Potongan (cm)</label>
                 <input type="number" className="input-field" placeholder="15"
                   value={form.ukuranPotongL} onChange={e => set('ukuranPotongL', e.target.value)} />
               </div>
             </div>
             <div>
-              <label className="label">Harga / Lembar (Rp)</label>
+              <label className="label">Harga per Lembar (Rp)</label>
               <input type="number" className="input-field" placeholder="5000"
                 value={form.hargaPerLembarOverride} onChange={e => set('hargaPerLembarOverride', e.target.value)} />
             </div>
@@ -317,12 +317,12 @@ export default function HitungCetakan({ user, planHook, initialData, onUpgradeCl
             )}
           </Section>
 
-          <Section title="Ongkos Cetak">
+          <Section title="Biaya Mesin Cetak">
             <div>
-              <label className="label">Nama Mesin *</label>
+              <label className="label">Pilih Mesin Cetak *</label>
               <select className="input-field" value={form.namaMesin}
                 onChange={e => set('namaMesin', e.target.value)}>
-                <option value="">— Pilih mesin —</option>
+                <option value="">— Pilih mesin cetak —</option>
                 {masterMesin.map(m => (
                   <option key={m.id} value={m.nama}>{m.nama} (min {m.minLembar.toLocaleString('id-ID')} lbr)</option>
                 ))}
@@ -400,10 +400,10 @@ export default function HitungCetakan({ user, planHook, initialData, onUpgradeCl
             )}
           </Section>
 
-          <Section title="Ongkos Lem">
+          <Section title="Biaya Lem (Per cm)">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="label">Cm Dilem</label>
+                <label className="label">Panjang Lem (cm)</label>
                 <input type="number" min="0" className="input-field" placeholder="5"
                   value={form.cmDilem} onChange={e => set('cmDilem', e.target.value)} />
               </div>
@@ -421,9 +421,9 @@ export default function HitungCetakan({ user, planHook, initialData, onUpgradeCl
             )}
           </Section>
 
-          <Section title="Ongkos Lem Borongan">
+          <Section title="Biaya Lem (Per Lembar)">
             <div>
-              <label className="label">Harga / Lembar (Rp)</label>
+              <label className="label">Harga Lem per Lembar (Rp)</label>
               <input type="number" min="0" className="input-field" placeholder="100"
                 value={form.hargaLemBorongan} onChange={e => set('hargaLemBorongan', e.target.value)} />
             </div>
@@ -439,8 +439,8 @@ export default function HitungCetakan({ user, planHook, initialData, onUpgradeCl
         <div className="space-y-4">
           <Section title="Biaya Tambahan">
             {[
-              ['ongkosPacking', 'Ongkos Packing'],
-              ['ongkosKirim',   'Ongkos Kirim'],
+              ['ongkosPacking', 'Biaya Packing'],
+              ['ongkosKirim',   'Biaya Pengiriman'],
               ['lainlain1',     'Biaya Lain-lain 1'],
               ['lainlain2',     'Biaya Lain-lain 2'],
             ].map(([k, l]) => (
@@ -458,14 +458,14 @@ export default function HitungCetakan({ user, planHook, initialData, onUpgradeCl
               <span className="section-title">Ringkasan Total</span>
             </div>
             <div className="p-5 space-y-0.5">
-              <Row label="Kertas"         value={formatRp(totalHargaKertas)} />
-              <Row label="Ongkos Cetak"   value={formatRp(ongkosCetak)} />
+              <Row label="Biaya Kertas"    value={formatRp(totalHargaKertas)} />
+              <Row label="Biaya Mesin"    value={formatRp(ongkosCetak)} />
               <Row label="Finishing"      value={formatRp(totalFinishing)} />
               <Row label="Packing"        value={formatRp(packing)} />
-              <Row label="Kirim"          value={formatRp(kirim)} />
+              <Row label="Pengiriman"     value={formatRp(kirim)} />
               <Row label="Lain-lain"      value={formatRp(lain1 + lain2)} />
-              <Row label="Lem"            value={formatRp(totalLem)} />
-              <Row label="Lem Borongan"   value={formatRp(totalLemBorongan)} />
+              <Row label="Lem (per cm)"   value={formatRp(totalLem)} />
+              <Row label="Lem (per lbr)"  value={formatRp(totalLemBorongan)} />
               <div className="border-t border-zinc-200 mt-2 pt-3 flex justify-between items-center">
                 <span className="text-xs font-bold text-zinc-600">Sub Total</span>
                 <span className="text-sm font-black text-zinc-900">{formatRp(subTotal)}</span>

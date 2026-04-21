@@ -168,12 +168,12 @@ export default function UserSubscription({ user, onUpgradeClick }) {
         </h3>
         <div className="space-y-4">
           <UsageBar
-            label="Potong Kertas"
+            label="Kalkulator Potong Kertas"
             used={usagePotongKertas}
             limit={PLANS[plan]?.limits.potongKertasPerMonth ?? null}
           />
           <UsageBar
-            label="Hitung Cetakan"
+            label="Kalkulator Biaya Cetak"
             used={usageHitungCetakan}
             limit={PLANS[plan]?.limits.hitungCetakanPerMonth ?? null}
           />
@@ -239,7 +239,7 @@ export default function UserSubscription({ user, onUpgradeClick }) {
               whatsappIntegration: 'WA Integration', multiOutlet: 'Multi Outlet',
               customBranding: 'Custom Branding', apiAccess: 'API Access',
               prioritySupport: 'Priority Support', onboardingCall: 'Onboarding Call',
-              potongKertas: 'Potong Kertas', hitungCetakan: 'Hitung Cetakan',
+              potongKertas: 'Kalkulator Potong Kertas', hitungCetakan: 'Kalkulator Biaya Cetak',
               earlyAccess: 'Early Access (Tahunan)',
             };
             if (!labels[key]) return null;

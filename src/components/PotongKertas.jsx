@@ -281,8 +281,8 @@ export default function PotongKertas({ user, planHook, onCarryOver, onNavigate, 
     <div className="space-y-0 max-w-7xl mx-auto">
       {/* Page header */}
       <div className="mb-5">
-        <h1 className="text-xl font-black text-zinc-900">Potong Kertas</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Kalkulator pemotongan kertas profesional dengan visualisasi grid real-time</p>
+        <h1 className="text-xl font-black text-zinc-900">Kalkulator Potong Kertas</h1>
+        <p className="text-sm text-zinc-500 mt-0.5">Hitung berapa potongan yang didapat dari satu lembar kertas, lengkap dengan visualisasi grid dan estimasi biaya bahan</p>
       </div>
 
       {/* Usage limit banner */}
@@ -322,22 +322,22 @@ export default function PotongKertas({ user, planHook, onCarryOver, onNavigate, 
         {/* ── LEFT PANEL — Form ─────────────────────────────────────────────── */}
         <div className="space-y-4">
 
-          {/* Informasi Cetak */}
+          {/* Informasi Pekerjaan */}
           <div className="card shadow-sm">
             <div className="card-header">
-              <span className="section-title">Informasi Cetak</span>
+              <span className="section-title">Informasi Pekerjaan</span>
             </div>
             <div className="p-5 space-y-3">
               <div>
-                <label className="label">Nama Customer / Cetakan</label>
-                <input className="input-field" placeholder="Nama klien atau nama job..."
+                <label className="label">Nama Pelanggan / Pekerjaan</label>
+                <input className="input-field" placeholder="Nama klien atau nama job cetak..."
                   value={form.namaCustomer} onChange={e => set('namaCustomer', e.target.value)} />
               </div>
               <div>
-                <label className="label">Bahan Kertas</label>
+                <label className="label">Jenis Kertas</label>
                 <select className="input-field" value={form.namaKertas}
                   onChange={e => handleSelectKertas(e.target.value)}>
-                  <option value="">— Pilih dari master —</option>
+                  <option value="">— Pilih dari Database Kertas —</option>
                   {masterKertas.map(k => (
                     <option key={k.id} value={k.nama}>{k.nama} ({k.gsm} gsm, {k.p}×{k.l} cm)</option>
                   ))}
@@ -350,23 +350,23 @@ export default function PotongKertas({ user, planHook, onCarryOver, onNavigate, 
                     value={form.gsm} onChange={e => set('gsm', e.target.value)} />
                 </div>
                 <div>
-                  <label className="label">Harga / Lembar (Rp)</label>
+                  <label className="label">Harga per Lembar (Rp)</label>
                   <input type="number" className="input-field" placeholder="5000"
                     value={form.hargaLembar} onChange={e => set('hargaLembar', e.target.value)} />
                 </div>
               </div>
               {hargaRim > 0 && (
                 <div className="bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2.5 text-xs text-zinc-600">
-                  Harga per Rim (500 lbr): <span className="font-black text-zinc-900">{formatRp(hargaRim)}</span>
+                  Harga per Rim (500 lembar): <span className="font-black text-zinc-900">{formatRp(hargaRim)}</span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Ukuran */}
+          {/* Ukuran Kertas & Potongan */}
           <div className="card shadow-sm">
             <div className="card-header">
-              <span className="section-title">Ukuran</span>
+              <span className="section-title">Ukuran Kertas & Potongan</span>
             </div>
             <div className="p-5 space-y-3">
               <div className="grid grid-cols-2 gap-3">
@@ -406,12 +406,12 @@ export default function PotongKertas({ user, planHook, onCarryOver, onNavigate, 
                 <label className="label">Mode Optimasi</label>
                 <select className="input-field" value={form.mode} onChange={e => set('mode', e.target.value)}>
                   <option value="greedy">Cepat (Greedy) — Normal vs Rotasi 90°</option>
-                  <option value="brute">Maksimal (Brute Force) — Coba semua strip</option>
+                  <option value="brute">Maksimal (Brute Force) — Coba semua kemungkinan</option>
                 </select>
               </div>
 
               <div>
-                <label className="label">Jumlah Cetakan Diperlukan</label>
+                <label className="label">Jumlah yang Dibutuhkan</label>
                 <input type="number" min="1" className="input-field" placeholder="3000"
                   value={form.jumlahDiperlukan} onChange={e => set('jumlahDiperlukan', e.target.value)} />
               </div>
@@ -442,7 +442,7 @@ export default function PotongKertas({ user, planHook, onCarryOver, onNavigate, 
             </div>
             <button onClick={handleCarryOver} disabled={!result}
               className="w-full py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 text-amber-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-              Hitung Cetakan Lengkap <ChevronRight size={15} />
+              Lanjut ke Kalkulator Biaya Cetak <ChevronRight size={15} />
             </button>
           </div>
         </div>
@@ -452,11 +452,11 @@ export default function PotongKertas({ user, planHook, onCarryOver, onNavigate, 
 
           {/* Stat cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <StatCard label="Diperlukan"     value={result?.qty ? result.qty.toLocaleString('id-ID') : '—'} sub="pcs" accent="blue" />
-            <StatCard label="Potongan/Lembar" value={result?.potonganPerLembar ?? '—'} sub="pcs per plano" accent="pink" />
+            <StatCard label="Dibutuhkan"      value={result?.qty ? result.qty.toLocaleString('id-ID') : '—'} sub="pcs" accent="blue" />
+            <StatCard label="Potongan/Lembar" value={result?.potonganPerLembar ?? '—'} sub="pcs per lembar" accent="pink" />
             <StatCard label="Kertas Dibutuhkan" value={result?.kertasDibutuhkan ? result.kertasDibutuhkan.toLocaleString('id-ID') : '—'} sub="lembar" accent="green" />
-            <StatCard label="Total Harga"    value={result?.totalHarga ? formatRp(result.totalHarga) : '—'} sub="estimasi kertas" accent="orange" />
-            <StatCard label="Efisiensi"      value={result ? result.efisiensi.toFixed(1) + '%' : '—'} sub="penggunaan kertas" accent="teal" />
+            <StatCard label="Estimasi Biaya"  value={result?.totalHarga ? formatRp(result.totalHarga) : '—'} sub="biaya kertas" accent="orange" />
+            <StatCard label="Efisiensi"       value={result ? result.efisiensi.toFixed(1) + '%' : '—'} sub="penggunaan kertas" accent="teal" />
             {result && (
               <div className={`rounded-2xl border p-4 flex items-center justify-center text-center ${
                 result.efisiensi >= 90 ? 'bg-emerald-50 border-emerald-100' :
@@ -482,7 +482,7 @@ export default function PotongKertas({ user, planHook, onCarryOver, onNavigate, 
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700">
                 <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-                <span><strong>Efisiensi rendah ({result.efisiensi.toFixed(1)}%).</strong> Pertimbangkan ukuran potongan alternatif atau orientasi berbeda.</span>
+                <span><strong>Efisiensi rendah ({result.efisiensi.toFixed(1)}%).</strong> Coba ubah ukuran potongan atau orientasi kertas.</span>
               </motion.div>
             )}
             {result && result.efisiensi >= 90 && (
@@ -497,10 +497,10 @@ export default function PotongKertas({ user, planHook, onCarryOver, onNavigate, 
           {/* SVG Grid */}
           <div className="card shadow-sm">
             <div className="card-header">
-              <span className="section-title">Visualisasi Grid</span>
+              <span className="section-title">Visualisasi Pemotongan</span>
               {result && (
                 <span className="text-[10px] text-zinc-400">
-                  {result.pieces.length} potongan pada 1 lembar plano
+                  {result.pieces.length} potongan per lembar kertas
                 </span>
               )}
             </div>
@@ -535,13 +535,13 @@ export default function PotongKertas({ user, planHook, onCarryOver, onNavigate, 
                 </div>
                 <div className="p-5 space-y-3 text-sm">
                   {[
-                    ['Ukuran Kertas',    `${form.lebarKertas} × ${form.tinggiKertas} cm`],
-                    ['Ukuran Potongan',  `${form.lebarPotong} × ${form.tinggiPotong} cm`],
-                    ['Luas Kertas',      `${(+form.lebarKertas * +form.tinggiKertas).toLocaleString('id-ID')} cm²`],
-                    ['Luas Terpakai',    `${(+form.lebarPotong * +form.tinggiPotong * result.potonganPerLembar).toLocaleString('id-ID')} cm²`],
-                    ['Luas Waste',       `${((+form.lebarKertas * +form.tinggiKertas) - (+form.lebarPotong * +form.tinggiPotong * result.potonganPerLembar)).toLocaleString('id-ID')} cm²`],
-                    ['Mode',            form.mode === 'brute' ? 'Brute Force' : 'Greedy'],
-                    ['Strategi',        result.strategy],
+                    ['Ukuran Kertas',     `${form.lebarKertas} × ${form.tinggiKertas} cm`],
+                    ['Ukuran Potongan',   `${form.lebarPotong} × ${form.tinggiPotong} cm`],
+                    ['Luas Kertas',       `${(+form.lebarKertas * +form.tinggiKertas).toLocaleString('id-ID')} cm²`],
+                    ['Luas Terpakai',     `${(+form.lebarPotong * +form.tinggiPotong * result.potonganPerLembar).toLocaleString('id-ID')} cm²`],
+                    ['Luas Terbuang',     `${((+form.lebarKertas * +form.tinggiKertas) - (+form.lebarPotong * +form.tinggiPotong * result.potonganPerLembar)).toLocaleString('id-ID')} cm²`],
+                    ['Mode Optimasi',     form.mode === 'brute' ? 'Brute Force (Maksimal)' : 'Greedy (Cepat)'],
+                    ['Orientasi Terbaik', result.strategy],
                   ].map(([l, v]) => (
                     <div key={l} className="flex justify-between items-center py-1.5 border-b border-zinc-50 last:border-0">
                       <span className="text-zinc-400 text-xs">{l}</span>
@@ -560,7 +560,7 @@ export default function PotongKertas({ user, planHook, onCarryOver, onNavigate, 
                         <span className="font-semibold text-zinc-800 text-xs">{result.kertasDibutuhkan.toLocaleString('id-ID')} lembar</span>
                       </div>
                       <div className="flex justify-between items-center py-2 bg-zinc-50 px-3 rounded-lg">
-                        <span className="font-bold text-zinc-700 text-xs">Total Harga Kertas</span>
+                        <span className="font-bold text-zinc-700 text-xs">Total Biaya Kertas</span>
                         <span className="font-black text-zinc-900 text-sm">{formatRp(result.totalHarga)}</span>
                       </div>
                     </>
@@ -577,7 +577,7 @@ export default function PotongKertas({ user, planHook, onCarryOver, onNavigate, 
                 <Scissors size={24} className="text-zinc-400" />
               </div>
               <p className="text-sm font-bold text-zinc-400">Isi form & klik Hitung Potongan</p>
-              <p className="text-xs text-zinc-300 mt-1">Visualisasi grid akan muncul di sini</p>
+              <p className="text-xs text-zinc-300 mt-1">Visualisasi pemotongan akan muncul di sini</p>
             </div>
           )}
         </div>

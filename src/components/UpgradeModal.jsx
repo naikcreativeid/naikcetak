@@ -7,28 +7,28 @@ import { submitUpgradeRequest, uploadPaymentProof } from '../lib/supabase';
 // ── Pro features grid ─────────────────────────────────────────────────────────
 const PRO_FEATURES = [
   [
-    { label: 'Potong Kertas',         desc: 'tidak terbatas' },
-    { label: 'Hitung Cetakan',        desc: 'tidak terbatas' },
-    { label: 'Export PDF Invoice',    desc: '+ Quotation profesional' },
-    { label: 'Groq AI',               desc: 'Brief Analyzer & Email' },
-    { label: 'WhatsApp Integration',  desc: 'kirim langsung dari app' },
+    { label: 'Kalkulator Potong Kertas', desc: 'penggunaan tidak terbatas' },
+    { label: 'Kalkulator Biaya Cetak',   desc: 'penggunaan tidak terbatas' },
+    { label: 'Export PDF Invoice',       desc: '+ Quotation profesional' },
+    { label: 'Groq AI Assistant',        desc: 'Brief Analyzer & Email' },
+    { label: 'Integrasi WhatsApp',       desc: 'kirim langsung dari app' },
   ],
   [
-    { label: 'Master Kertas',         desc: 'tidak terbatas' },
-    { label: 'Master Finishing & Mesin', desc: 'database lengkap' },
-    { label: 'Riwayat kalkulasi',     desc: '1 tahun penuh' },
-    { label: '3 akun tim',            desc: 'kolaborasi bersama' },
-    { label: 'Tracking Order publik', desc: 'klien pantau sendiri' },
-    { label: 'Support prioritas WA',  desc: 'respons lebih cepat' },
+    { label: 'Database Kertas',          desc: 'tidak terbatas' },
+    { label: 'Layanan Finishing & Mesin', desc: 'database lengkap' },
+    { label: 'Riwayat kalkulasi',        desc: '1 tahun penuh' },
+    { label: '3 akun tim',               desc: 'kolaborasi bersama' },
+    { label: 'Tracking Order publik',    desc: 'klien pantau sendiri' },
+    { label: 'Support prioritas WA',     desc: 'respons lebih cepat' },
   ],
 ];
 
 const STARTER_FEATURES = [
-  { ok: true,  label: 'Potong Kertas — 10x/bulan' },
-  { ok: true,  label: 'Hitung Cetakan — 5x/bulan' },
-  { ok: true,  label: 'Master Kertas — maks 5 jenis' },
+  { ok: true,  label: 'Kalkulator Potong Kertas — 10x/bulan' },
+  { ok: true,  label: 'Kalkulator Biaya Cetak — 5x/bulan' },
+  { ok: true,  label: 'Database Kertas — maks 5 jenis' },
   { ok: true,  label: '1 akun pengguna' },
-  { ok: false, label: 'Groq AI features' },
+  { ok: false, label: 'Groq AI Assistant' },
   { ok: false, label: 'Export PDF Invoice' },
   { ok: false, label: 'Quotation & Tracking Order' },
   { ok: false, label: 'Penggunaan tidak terbatas' },

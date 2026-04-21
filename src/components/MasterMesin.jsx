@@ -128,11 +128,9 @@ export default function MasterMesin() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
-            <Cpu size={18} className="text-zinc-700" /> Master Ongkos Cetak
-          </h2>
+          <h2 className="text-xl font-black text-zinc-900">Pengaturan Mesin</h2>
           <p className="text-sm text-zinc-500 mt-0.5">
-            {items.length} mesin tersimpan — digunakan di Hitung Cetakan
+            {items.length} mesin tersimpan — digunakan di Kalkulator Biaya Cetak
           </p>
         </div>
         <button

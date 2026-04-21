@@ -125,8 +125,8 @@ function LeftPanel() {
 
         <div className="space-y-3">
           {[
-            { Icon: Scissors, title: 'Kalkulator Potong Kertas', desc: 'Hitung efisiensi & biaya secara otomatis' },
-            { Icon: Printer,  title: 'Hitung Cetakan Lengkap',   desc: 'HPP, finishing, ongkos cetak terintegrasi' },
+            { Icon: Scissors, title: 'Kalkulator Potong Kertas', desc: 'Hitung efisiensi & estimasi biaya secara otomatis' },
+            { Icon: Printer,  title: 'Kalkulator Biaya Cetak',  desc: 'Kertas, mesin, finishing, profit — semua terhitung' },
           ].map(({ Icon, title, desc }) => (
             <div key={title} className="bg-white/10 border border-white/20 rounded-xl p-4 flex items-start gap-3">
               <div className="w-9 h-9 bg-white/15 rounded-lg flex items-center justify-center shrink-0">

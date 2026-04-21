@@ -65,35 +65,35 @@ const UTILITY_GROUPS = [
     label: 'PRODUKSI',
     color: 'emerald',
     items: [
-      { id: 'potong',   Icon: Scissors, title: 'Potong Kertas',  tag: 'Baru',  iconBg: 'bg-pink-500'    },
-      { id: 'cetakan',  Icon: Printer,  title: 'Hitung Cetakan', tag: 'Baru',  iconBg: 'bg-emerald-600' },
+      { id: 'potong',   Icon: Scissors, title: 'Kalkulator Potong Kertas', tag: null, iconBg: 'bg-pink-500'    },
+      { id: 'cetakan',  Icon: Printer,  title: 'Kalkulator Biaya Cetak',   tag: null, iconBg: 'bg-emerald-600' },
     ],
   },
   {
     label: 'OPERASIONAL',
     color: 'blue',
     items: [
-      { id: 'quotation', Icon: Timer,   title: 'Quotation',       tag: null, iconBg: 'bg-orange-500' },
-      { id: 'tracking',  Icon: Package, title: 'Tracking Order',  tag: null, iconBg: 'bg-teal-500'   },
-      { id: 'email',     Icon: Mail,    title: 'Email & Proposal',tag: null, iconBg: 'bg-indigo-500' },
+      { id: 'quotation', Icon: Timer,   title: 'Quotation',        tag: null, iconBg: 'bg-orange-500' },
+      { id: 'tracking',  Icon: Package, title: 'Tracking Order',   tag: null, iconBg: 'bg-teal-500'   },
+      { id: 'email',     Icon: Mail,    title: 'Email & Proposal', tag: null, iconBg: 'bg-indigo-500' },
     ],
   },
   {
-    label: 'MASTER DATA',
+    label: 'DATA REFERENSI',
     color: 'zinc',
     items: [
-      { id: 'masterKertas',    Icon: Database, title: 'Master Kertas',    tag: null, iconBg: 'bg-zinc-500' },
-      { id: 'masterFinishing', Icon: Layers,   title: 'Master Finishing', tag: null, iconBg: 'bg-zinc-500' },
+      { id: 'masterKertas',    Icon: Database, title: 'Database Kertas',   tag: null, iconBg: 'bg-zinc-500' },
+      { id: 'masterFinishing', Icon: Layers,   title: 'Layanan Finishing', tag: null, iconBg: 'bg-zinc-500' },
     ],
   },
 ];
 
 // ── Riwayat tipe config ───────────────────────────────────────────────────────
 const TIPE_META = {
-  potong_kertas:  { label: 'Potong Kertas',  Icon: Scissors,   color: 'text-pink-600',    bg: 'bg-pink-50',    page: 'potong'   },
-  hitung_cetakan: { label: 'Hitung Cetakan', Icon: Printer,    color: 'text-emerald-600', bg: 'bg-emerald-50', page: 'cetakan'  },
-  hpp_calculator: { label: 'Kalkulator HPP', Icon: Calculator, color: 'text-zinc-700',    bg: 'bg-zinc-100',   page: 'calculator'},
-  invoice:        { label: 'Invoice',        Icon: FileText,   color: 'text-blue-600',    bg: 'bg-blue-50',    page: 'invoice'  },
+  potong_kertas:  { label: 'Kalkulator Potong Kertas', Icon: Scissors,   color: 'text-pink-600',    bg: 'bg-pink-50',    page: 'potong'    },
+  hitung_cetakan: { label: 'Kalkulator Biaya Cetak',   Icon: Printer,    color: 'text-emerald-600', bg: 'bg-emerald-50', page: 'cetakan'   },
+  hpp_calculator: { label: 'Kalkulator HPP',           Icon: Calculator, color: 'text-zinc-700',    bg: 'bg-zinc-100',   page: 'calculator'},
+  invoice:        { label: 'Invoice',                  Icon: FileText,   color: 'text-blue-600',    bg: 'bg-blue-50',    page: 'invoice'   },
 };
 
 function ringkasanText(tipe, r) {

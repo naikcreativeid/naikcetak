@@ -15,79 +15,79 @@ const REGISTER_URL = `${APP_URL}/#/login?tab=daftar`;
 // ── Data ──────────────────────────────────────────────────────────────────────
 
 const FEATURES = [
-  { icon: Scissors,   color: '#2563EB', label: 'Potong Kertas',      badge: 'Baru',
-    desc: 'Visualisasi grid real-time, hitung efisiensi, optimasi otomatis brute-force.' },
-  { icon: Printer,    color: '#7C3AED', label: 'Hitung Cetakan',      badge: 'Baru',
-    desc: 'HPP lengkap: kertas + ongkos cetak + finishing + lem + profit dalam 1 kalkulasi.' },
-  { icon: Calculator, color: '#059669', label: 'Kalkulator HPP',      badge: null,
-    desc: 'Hitung harga pokok produksi dengan simulasi bulk dan rekomendasi margin.' },
-  { icon: FileText,   color: '#D97706', label: 'Invoice & Quotation', badge: null,
-    desc: 'Template profesional, hitung otomatis, kirim via WhatsApp dalam hitungan detik.' },
-  { icon: Package,    color: '#DC2626', label: 'Tracking Order',      badge: null,
-    desc: 'Link publik untuk klien pantau status produksi tanpa perlu login.' },
+  { icon: Scissors,   color: '#2563EB', label: 'Paper Cutting Optimizer',      badge: 'Baru',
+    desc: 'Visualize sheet layouts in real-time, calculate efficiency, and optimize automatically with brute-force algorithms.' },
+  { icon: Printer,    color: '#7C3AED', label: 'Printing Cost Calculator',      badge: 'Baru',
+    desc: 'Complete cost calculation: paper + printing costs + finishing + glue + profit in one comprehensive tool.' },
+  { icon: Calculator, color: '#059669', label: 'Production Cost Calculator',      badge: null,
+    desc: 'Calculate production costs with bulk simulations and recommended margins.' },
+  { icon: FileText,   color: '#D97706', label: 'Invoice & Quotation Generator', badge: null,
+    desc: 'Professional templates, automatic calculations, send via WhatsApp instantly.' },
+  { icon: Package,    color: '#DC2626', label: 'Order Tracking System',      badge: null,
+    desc: 'Public links for clients to monitor production status without logging in.' },
   { icon: Brain,      color: '#0891B2', label: 'AI Assistant',        badge: 'Pro',
-    desc: 'Analisis brief klien, saran spesifikasi teknis, dan audit bisnis berbasis Groq AI.' },
-  { icon: Mail,       color: '#7C3AED', label: 'Email & Proposal',    badge: null,
-    desc: 'Generator email penawaran profesional dengan tone dan format yang tepat.' },
-  { icon: Database,   color: '#374151', label: 'Master Data',         badge: null,
-    desc: 'Database kertas, finishing, dan mesin terintegrasi. Update sekali, berlaku semua.' },
+    desc: 'Analyze client briefs, suggest technical specs, and business audits powered by Groq AI.' },
+  { icon: Mail,       color: '#7C3AED', label: 'Email & Proposal Generator',    badge: null,
+    desc: 'Generate professional proposal emails with appropriate tone and format.' },
+  { icon: Database,   color: '#374151', label: 'Master Data Management',         badge: null,
+    desc: 'Integrated database for paper, finishing, and machines. Update once, apply everywhere.' },
 ];
 
 const PAIN_POINTS = [
-  { bad: 'Hitung potong kertas manual 30 menit, sering salah arah grain',
-    good: 'Selesai 5 detik dengan visualisasi grid + optimasi otomatis' },
-  { bad: 'Salah hitung HPP = jual rugi, tidak tahu mana job yang profit',
-    good: 'Kalkulasi otomatis semua komponen biaya, langsung tahu margin' },
-  { bad: 'Invoice masih di Word/Excel, dikirim manual satu per satu',
-    good: 'Generate invoice profesional 1 klik, kirim WA langsung dari app' },
+  { bad: 'Manual paper cutting calculation takes 30 minutes, often wrong grain direction',
+    good: 'Done in 5 seconds with grid visualization + automatic optimization' },
+  { bad: 'Wrong cost calculation = selling at a loss, don\'t know which jobs are profitable',
+    good: 'Automatic calculation of all cost components, know margin immediately' },
+  { bad: 'Invoices still in Word/Excel, sent manually one by one',
+    good: 'Generate professional invoices 1 click, send via WhatsApp directly from app' },
 ];
 
 const SCREENSHOTS = [
   { label: 'Dashboard',       color: '#F0F9FF', accent: '#2563EB' },
-  { label: 'Potong Kertas',   color: '#F0FDF4', accent: '#059669' },
-  { label: 'Hitung Cetakan',  color: '#FEF9C3', accent: '#D97706' },
+  { label: 'Paper Cutting Optimizer',   color: '#F0FDF4', accent: '#059669' },
+  { label: 'Printing Cost Calculator',  color: '#FEF9C3', accent: '#D97706' },
   { label: 'Invoice',         color: '#FDF4FF', accent: '#7C3AED' },
 ];
 
 const TESTIMONIALS = [
-  { quote: 'Dulu hitung potong kertas bisa 20 menit, sekarang 10 detik. Efisiensi naik drastis dan tidak ada lagi kerugian karena salah hitung.',
+  { quote: 'Used to take 20 minutes to calculate paper cutting, now 10 seconds. Efficiency skyrocketed and no more losses from miscalculations.',
     name: 'Budi Santoso', title: 'Owner', company: 'PercetakanMaju', city: 'Bandung', initial: 'B' },
-  { quote: 'Invoice naikcetak kelihatan jauh lebih profesional dari sebelumnya. Klien jadi lebih percaya dan pembayaran lebih tepat waktu.',
-    name: 'Sari Dewi', title: 'Manajer Produksi', company: 'PrintHouse Solo', city: 'Solo', initial: 'S' },
-  { quote: 'Fitur tracking order membuat klien lebih tenang karena bisa pantau sendiri. Komplain berkurang 80%.',
-    name: 'Andi Pratama', title: 'Direktur', company: 'MegaPrint', city: 'Surabaya', initial: 'A' },
+  { quote: 'Naikcetak invoices look much more professional than before. Clients trust more and payments are more on time.',
+    name: 'Sari Dewi', title: 'Production Manager', company: 'PrintHouse Solo', city: 'Solo', initial: 'S' },
+  { quote: 'Order tracking feature makes clients more relaxed because they can monitor themselves. Complaints reduced by 80%.',
+    name: 'Andi Pratama', title: 'Director', company: 'MegaPrint', city: 'Surabaya', initial: 'A' },
 ];
 
 const PLAN_FEATURES_LIST = [
-  { key: 'potongKertasPerMonth',   label: 'Potong Kertas' },
-  { key: 'hitungCetakanPerMonth',  label: 'Hitung Cetakan' },
-  { key: 'kalkulatorHPP',          label: 'Kalkulator HPP',     isFeature: true },
-  { key: 'invoice',                label: 'Invoice & Quotation', isFeature: true },
-  { key: 'trackingOrder',          label: 'Tracking Order',      isFeature: true },
+  { key: 'potongKertasPerMonth',  label: 'Kalkulator Potong Kertas', isFeature: false },
+  { key: 'hitungCetakanPerMonth', label: 'Kalkulator Biaya Cetak',   isFeature: false },
+  { key: 'kalkulatorHPP',          label: 'Production Cost Calculator',     isFeature: true },
+  { key: 'invoice',                label: 'Invoice & Quotation Generator', isFeature: true },
+  { key: 'trackingOrder',          label: 'Order Tracking System',      isFeature: true },
   { key: 'exportPDF',              label: 'Export PDF',           isFeature: true },
   { key: 'groqAI',                 label: 'AI Assistant',         isFeature: true },
-  { key: 'whatsappIntegration',    label: 'Integrasi WhatsApp',   isFeature: true },
+  { key: 'whatsappIntegration',    label: 'WhatsApp Integration',   isFeature: true },
   { key: 'multiOutlet',            label: 'Multi Outlet',         isFeature: true },
   { key: 'prioritySupport',        label: 'Priority Support',     isFeature: true },
 ];
 
 const FAQ_ITEMS = [
-  { q: 'Apakah naikcetak benar-benar gratis?',
-    a: 'Ya! Paket Starter gratis selamanya — tidak perlu kartu kredit. Anda bisa pakai fitur Potong Kertas (10x/bulan) dan Hitung Cetakan (5x/bulan) tanpa biaya.' },
-  { q: 'Bagaimana cara upgrade ke Pro?',
-    a: 'Klik "Upgrade" di aplikasi → pilih paket → transfer ke rekening kami → upload bukti transfer. Admin akan verifikasi dan aktifkan akun Anda dalam 1×24 jam hari kerja.' },
-  { q: 'Berapa lama aktivasi setelah transfer?',
-    a: 'Maksimal 1×24 jam hari kerja. Jika sudah kirim bukti transfer ke WhatsApp admin, biasanya diproses dalam 1-2 jam.' },
-  { q: 'Apakah data saya aman?',
-    a: 'Data tersimpan di Supabase dengan enkripsi dan Row Level Security. Hanya Anda yang bisa mengakses data akun Anda sendiri.' },
-  { q: 'Bisa dipakai di HP?',
-    a: 'Ya, naikcetak fully responsive untuk semua device — desktop, tablet, maupun smartphone.' },
-  { q: 'Apakah ada trial Pro?',
-    a: 'Paket Starter bisa dicoba gratis selamanya. Jika butuh fitur Pro, langsung upgrade kapan saja. Tidak ada trial berbatas waktu yang membingungkan.' },
-  { q: 'Bagaimana jika saya tidak puas?',
-    a: 'Hubungi kami dalam 7 hari setelah aktivasi. Kami akan mempertimbangkan refund jika ada alasan yang valid.' },
-  { q: 'Apa itu Groq AI di naikcetak?',
-    a: 'Groq AI adalah AI assistant super cepat yang membantu analisis brief klien, saran spesifikasi teknis, dan audit bisnis. Paket Pro: gunakan API key Groq Anda sendiri secara gratis.' },
+  { q: 'Is naikcetak really free?',
+    a: 'Yes! The Starter package is free forever — no credit card required. You can use Paper Cutting Optimizer (10x/month) and Printing Cost Calculator (5x/month) at no cost.' },
+  { q: 'How to upgrade to Pro?',
+    a: 'Click "Upgrade" in the app → select package → transfer to our account → upload proof of transfer. Admin will verify and activate your account within 24 hours on business days.' },
+  { q: 'How long until activation after transfer?',
+    a: 'Maximum 24 hours on business days. If you send proof of transfer to admin WhatsApp, usually processed within 1-2 hours.' },
+  { q: 'Is my data secure?',
+    a: 'Data is stored in Supabase with encryption and Row Level Security. Only you can access your own account data.' },
+  { q: 'Can it be used on mobile?',
+    a: 'Yes, naikcetak is fully responsive for all devices — desktop, tablet, or smartphone.' },
+  { q: 'Is there a Pro trial?',
+    a: 'The Starter package can be tried free forever. If you need Pro features, upgrade anytime. No confusing limited-time trials.' },
+  { q: 'What if I\'m not satisfied?',
+    a: 'Contact us within 7 days after activation. We will consider a refund if there is a valid reason.' },
+  { q: 'What is Groq AI in naikcetak?',
+    a: 'Groq AI is a super-fast AI assistant that helps analyze client briefs, suggest technical specs, and business audits. Pro package: use your own Groq API key for free.' },
 ];
 
 const CITIES = ['Jakarta', 'Bandung', 'Surabaya', 'Medan', 'Makassar', 'Yogyakarta', 'Semarang', 'Bali', 'Palembang', 'Pekanbaru'];
@@ -180,7 +180,7 @@ function HeroSection() {
         {/* Sub */}
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
           className="text-lg text-zinc-500 max-w-2xl mx-auto mb-8 leading-relaxed">
-          Kalkulator potong kertas, hitung cetakan, HPP otomatis, invoice, quotation,
+          Kalkulator Potong Kertas, Kalkulator Biaya Cetak, HPP otomatis, invoice, quotation,
           dan AI assistant — semua dalam satu platform untuk percetakan Indonesia.
         </motion.p>
 
@@ -229,7 +229,7 @@ function HeroSection() {
                 {/* Content */}
                 <div className="flex-1 p-4 space-y-3">
                   <div className="grid grid-cols-3 gap-2">
-                    {[['#DBEAFE','Potong Kertas','↗ 24 job'],['#D1FAE5','HPP Hari Ini','Rp 2.4jt'],['#FEF9C3','Invoice Aktif','7 pending']].map(([bg, label, val]) => (
+                    {[['#DBEAFE','Potong Kertas','↗ 24 job'],['#D1FAE5','Biaya Cetak','Rp 2.4jt'],['#FEF9C3','Invoice Aktif','7 pending']].map(([bg, label, val]) => (
                       <div key={label} className="rounded-lg p-3" style={{ background: bg }}>
                         <p className="text-[8px] text-zinc-500 font-semibold">{label}</p>
                         <p className="text-[11px] font-black text-zinc-800 mt-1">{val}</p>
@@ -238,7 +238,7 @@ function HeroSection() {
                   </div>
                   <div className="bg-white rounded-lg p-3">
                     <p className="text-[9px] font-bold text-zinc-600 mb-2">Riwayat Produksi</p>
-                    {[['Potong Kertas','Box Kue 10×15','34 pcs/lbr','#DBEAFE'],['Hitung Cetakan','Brosur A5','Rp 1.250/pcs','#D1FAE5']].map(([type, name, val, bg]) => (
+                    {[['Kalk. Potong','Box Kue 10×15','34 pcs/lbr','#DBEAFE'],['Kalk. Biaya Cetak','Brosur A5','Rp 1.250/pcs','#D1FAE5']].map(([type, name, val, bg]) => (
                       <div key={name} className="flex items-center gap-2 py-1.5 border-b border-zinc-50 last:border-0">
                         <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: bg }}>
                           <Scissors size={9} className="text-blue-600" />

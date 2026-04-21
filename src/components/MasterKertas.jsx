@@ -111,8 +111,8 @@ export default function MasterKertas() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-xl font-black text-zinc-900">Master Harga Kertas</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Database kertas — dipakai auto-fill di Potong Kertas & Hitung Cetakan</p>
+          <h1 className="text-xl font-black text-zinc-900">Database Kertas</h1>
+          <p className="text-sm text-zinc-500 mt-0.5">Kelola data kertas Anda — otomatis tersedia di Kalkulator Potong Kertas & Kalkulator Biaya Cetak</p>
         </div>
         <div className="flex gap-2 shrink-0">
           <button onClick={() => window.print()} className="btn-ghost px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5">
@@ -134,7 +134,7 @@ export default function MasterKertas() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3">
         <div className="card p-4 shadow-sm">
-          <p className="section-title mb-1.5">Total Jenis Kertas</p>
+          <p className="section-title mb-1.5">Total Jenis</p>
           <p className="text-2xl font-black text-zinc-900">{items.length}</p>
         </div>
         <div className="card p-4 shadow-sm">
@@ -159,7 +159,7 @@ export default function MasterKertas() {
         <div className="card shadow-sm p-12 text-center">
           <Database size={28} className="text-zinc-300 mx-auto mb-3" />
           <p className="text-sm font-bold text-zinc-400">
-            {items.length === 0 ? 'Belum ada data kertas' : 'Tidak ada hasil pencarian'}
+            {items.length === 0 ? 'Belum ada kertas — klik Tambah Baru untuk mulai' : 'Tidak ada hasil pencarian'}
           </p>
         </div>
       ) : (

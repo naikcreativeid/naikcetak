@@ -27,16 +27,16 @@ const NAV_GROUPS = [
   {
     label: 'PRODUKSI',
     items: [
-      { id: 'potong',   Icon: Scissors, label: 'Potong Kertas',  badge: 'Baru', badgeColor: 'emerald' },
-      { id: 'cetakan',  Icon: Printer,  label: 'Hitung Cetakan', badge: 'Baru', badgeColor: 'emerald' },
+      { id: 'potong',   Icon: Scissors, label: 'Kalkulator Potong Kertas' },
+      { id: 'cetakan',  Icon: Printer,  label: 'Kalkulator Biaya Cetak'   },
     ],
   },
   {
-    label: 'MASTER DATA',
+    label: 'DATA REFERENSI',
     items: [
-      { id: 'masterKertas',    Icon: Database, label: 'Master Kertas'    },
-      { id: 'masterFinishing', Icon: Layers,   label: 'Master Finishing' },
-      { id: 'masterMesin',     Icon: Cpu,      label: 'Master Mesin'     },
+      { id: 'masterKertas',    Icon: Database, label: 'Database Kertas'   },
+      { id: 'masterFinishing', Icon: Layers,   label: 'Layanan Finishing' },
+      { id: 'masterMesin',     Icon: Cpu,      label: 'Pengaturan Mesin'  },
     ],
   },
   {
