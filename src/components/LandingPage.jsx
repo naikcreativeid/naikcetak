@@ -12,35 +12,36 @@ const APP_URL      = 'https://app.naikcetak.com';
 const LOGIN_URL    = `${APP_URL}/#/login`;
 const REGISTER_URL = `${APP_URL}/#/login?tab=daftar`;
 
-// ── Data ──────────────────────────────────────────────────────────────────────
+// // ── Data ──────────────────────────────────────────────────────────────────────
 
 const FEATURES = [
-  { icon: Scissors,   color: '#2563EB', label: 'Paper Cutting Optimizer',      badge: 'Baru',
-    desc: 'Visualize sheet layouts in real-time, calculate efficiency, and optimize automatically with brute-force algorithms.' },
-  { icon: Printer,    color: '#7C3AED', label: 'Printing Cost Calculator',      badge: 'Baru',
-    desc: 'Complete cost calculation: paper + printing costs + finishing + glue + profit in one comprehensive tool.' },
-  { icon: Calculator, color: '#059669', label: 'Production Cost Calculator',      badge: null,
-    desc: 'Calculate production costs with bulk simulations and recommended margins.' },
-  { icon: FileText,   color: '#D97706', label: 'Invoice & Quotation Generator', badge: null,
-    desc: 'Professional templates, automatic calculations, send via WhatsApp instantly.' },
-  { icon: Package,    color: '#DC2626', label: 'Order Tracking System',      badge: null,
-    desc: 'Public links for clients to monitor production status without logging in.' },
-  { icon: Brain,      color: '#0891B2', label: 'AI Assistant',        badge: 'Pro',
-    desc: 'Analyze client briefs, suggest technical specs, and business audits powered by Groq AI.' },
-  { icon: Mail,       color: '#7C3AED', label: 'Email & Proposal Generator',    badge: null,
-    desc: 'Generate professional proposal emails with appropriate tone and format.' },
-  { icon: Database,   color: '#374151', label: 'Master Data Management',         badge: null,
-    desc: 'Integrated database for paper, finishing, and machines. Update once, apply everywhere.' },
+  { icon: Scissors,   color: '#2563EB', label: 'Kalkulator Potong Kertas',      badge: 'Baru',
+    desc: 'Lihat posisi potong kertas secara langsung dan temukan pola paling hemat tanpa perlu corat-coret. Biarkan sistem kami yang mikir cara potong terbaiknya.' },
+  { icon: Printer,    color: '#7C3AED', label: 'Kalkulator Biaya Cetak',      badge: 'Baru',
+    desc: 'Hitung total modal cetak super komplit! Mulai dari harga kertas, ongkos naik mesin, finishing, sampai lem. Nggak ada lagi biaya yang terlewat.' },
+  { icon: Calculator, color: '#059669', label: 'Kalkulator HPP',      badge: null,
+    desc: 'Simulasi hitung modal untuk pesanan jumlah besar dengan mudah. Lengkap dengan rekomendasi harga jual biar bengkel cetak Anda tetap untung maksimal.' },
+  { icon: FileText,   color: '#D97706', label: 'Pembuat Invoice & Penawaran', badge: null,
+    desc: 'Tersedia template tagihan rapi yang angkanya dihitung otomatis. Tinggal klik, langsung kirim ke WhatsApp klien Anda supaya cepat dibayar.' },
+  { icon: Package,    color: '#DC2626', label: 'Sistem Lacak Pesanan',      badge: null,
+    desc: 'Kasih link khusus ke pelanggan supaya mereka bisa pantau sendiri pesanan mereka sudah sampai mana. Pelanggan tenang, WhatsApp Anda nggak berisik.' },
+  { icon: Brain,      color: '#0891B2', label: 'Asisten AI Pintar',        badge: 'Pro',
+    desc: 'Punya asisten virtual cerdas yang siap bantu bedah brief pelanggan, ngasih saran spesifikasi cetak, sampai bantu ngide strategi bisnis percetakan Anda.' },
+  { icon: Mail,       color: '#7C3AED', label: 'Pembuat Email & Proposal',    badge: null,
+    desc: 'Nggak perlu pusing merangkai kata. Bikin kata-kata penawaran (proposal) yang sopan, meyakinkan, dan profesional secara otomatis.' },
+  { icon: Database,   color: '#374151', label: 'Manajemen Data Master',         badge: null,
+    desc: 'Simpan semua daftar harga kertas, ongkos mesin, dan finishing di satu tempat. Cukup update harga sekali, otomatis berubah di semua hitungan.' },
 ];
 
 const PAIN_POINTS = [
-  { bad: 'Manual paper cutting calculation takes 30 minutes, often wrong grain direction',
-    good: 'Done in 5 seconds with grid visualization + automatic optimization' },
-  { bad: 'Wrong cost calculation = selling at a loss, don\'t know which jobs are profitable',
-    good: 'Automatic calculation of all cost components, know margin immediately' },
-  { bad: 'Invoices still in Word/Excel, sent manually one by one',
-    good: 'Generate professional invoices 1 click, send via WhatsApp directly from app' },
+  { bad: 'Hitung potong plano manual bisa ngabisin waktu setengah jam, itu pun kadang arah serat kertasnya (grain direction) kebalik.',
+    good: 'Beres dalam 5 detik! Pola potong langsung kelihatan di layar dan diatur otomatis biar kertas nggak banyak kebuang (anti-rugi).' },
+  { bad: 'Asal tebak harga karena pusing hitung biaya = jual rugi. Nggak sadar orderan mana yang sebenarnya bikin boncos.',
+    good: 'Semua biaya dihitung otomatis sampai ke akar-akarnya. Margin keuntungan langsung kelihatan jelas di depan mata!' },
+  { bad: 'Bikin invoice masih manual pakai Word/Excel, ngirimnya pun satu-satu. Pegal, lama, dan rawan salah ketik nominal.',
+    good: 'Cuma butuh 1 klik buat bikin invoice rapi & profesional. Langsung kirim via WhatsApp dari dalam aplikasi detik itu juga.' },
 ];
+;
 
 const SCREENSHOTS = [
   { label: 'Dashboard',       color: '#F0F9FF', accent: '#2563EB' },
