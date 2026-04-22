@@ -11,6 +11,17 @@ function loadQuotation(id) {
   } catch { return null; }
 }
 
+function decodeQuotationPayload(encoded) {
+  if (!encoded) return null;
+  try {
+    const normalized = encoded.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+    return JSON.parse(decodeURIComponent(escape(atob(padded))));
+  } catch {
+    return null;
+  }
+}
+
 function markOpened(id) {
   try {
     const list = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -81,19 +92,20 @@ function CountdownClock({ expiresAt }) {
 }
 
 // ── Main Client Page ──────────────────────────────────────────────────────────
-export default function QuotationClientPage({ quotationId }) {
+export default function QuotationClientPage({ quotationId, encodedData = '' }) {
   const [q, setQ]       = useState(null);
   const [notFound, setNotFound] = useState(false);
   const [accDone, setAccDone]   = useState(false);
 
   useEffect(() => {
     if (!quotationId) { setNotFound(true); return; }
-    const found = loadQuotation(quotationId);
+    const fromUrl = decodeQuotationPayload(encodedData);
+    const found = fromUrl?.id === quotationId ? fromUrl : loadQuotation(quotationId);
     if (!found) { setNotFound(true); return; }
     setQ(found);
-    markOpened(quotationId);
+    if (!fromUrl) markOpened(quotationId);
     if (found.status === 'acc') setAccDone(true);
-  }, [quotationId]);
+  }, [quotationId, encodedData]);
 
   const handleAcc = () => {
     if (!q) return;

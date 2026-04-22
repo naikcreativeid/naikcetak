@@ -41,8 +41,39 @@ function genId() {
   return 'NC-QT-' + Date.now().toString(36).toUpperCase();
 }
 
-function getQuotationUrl(id) {
-  return window.location.origin + window.location.pathname + '#/quotation/' + id;
+function encodeQuotationPayload(q) {
+  try {
+    const payload = {
+      id: q.id,
+      clientName: q.clientName || '',
+      clientBusiness: q.clientBusiness || '',
+      product: q.product || '',
+      material: q.material || '',
+      ukuran: q.ukuran || '',
+      finishing: q.finishing || '',
+      qty: q.qty || '',
+      total: q.total || '',
+      timeline: q.timeline || '',
+      slots: q.slots ?? 0,
+      bonuses: Array.isArray(q.bonuses) ? q.bonuses : [],
+      catatan: q.catatan || '',
+      wa: q.wa || '',
+      expiresAt: q.expiresAt,
+      status: q.status || 'draft',
+    };
+    return btoa(unescape(encodeURIComponent(JSON.stringify(payload))))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/g, '');
+  } catch {
+    return '';
+  }
+}
+
+function getQuotationUrl(q) {
+  const base = window.location.origin + window.location.pathname + '#/quotation/' + q.id;
+  const encoded = encodeQuotationPayload(q);
+  return encoded ? `${base}?data=${encoded}` : base;
 }
 
 function formatCountdown(ms) {
@@ -278,7 +309,7 @@ function QuotationForm({ onSave, onCancel, initial }) {
 function QuotationCard({ q, onDelete, onExtend, onUpdateStatus }) {
   const [copied, setCopied] = useState(false);
   const st = STATUS_META[q.status] ?? STATUS_META.draft;
-  const url = getQuotationUrl(q.id);
+  const url = getQuotationUrl(q);
   const isExpired = Date.now() > q.expiresAt && q.status !== 'acc';
 
   const copy = async (text) => {

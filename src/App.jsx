@@ -205,9 +205,10 @@ export default function App() {
     return <TrackingPage initialToken={trackMatch[1] ?? ''} />;
   }
 
-  const quotationMatch = hash.match(/^#\/quotation\/([A-Z0-9-]+)$/i);
+  const quotationMatch = hash.match(/^#\/quotation\/([A-Z0-9-]+)(?:\?(.*))?$/i);
   if (quotationMatch) {
-    return <QuotationClientPage quotationId={quotationMatch[1]} />;
+    const quotationParams = new URLSearchParams(quotationMatch[2] ?? '');
+    return <QuotationClientPage quotationId={quotationMatch[1]} encodedData={quotationParams.get('data') ?? ''} />;
   }
 
   const hostname = window.location.hostname;
