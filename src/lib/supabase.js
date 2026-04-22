@@ -810,6 +810,7 @@ export function getClientTrackingUrl(token) {
 
 export async function createClientOrder(userId, data) {
   if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { userEmail, ...orderData } = data ?? {};
   const { count } = await supabase
     .from('client_orders')
     .select('*', { count: 'exact', head: true })
@@ -821,7 +822,7 @@ export async function createClientOrder(userId, data) {
 
   const { data: order, error } = await supabase
     .from('client_orders')
-    .insert({ user_id: userId, order_number: orderNumber, tracking_token: token, tracking_url: trackingUrl, ...data })
+    .insert({ user_id: userId, order_number: orderNumber, tracking_token: token, tracking_url: trackingUrl, ...orderData })
     .select()
     .single();
   if (error) throw error;
@@ -829,7 +830,7 @@ export async function createClientOrder(userId, data) {
   // Initial update log
   await supabase.from('order_updates').insert({
     order_id: order.id, status_from: null, status_to: 'order_masuk',
-    note: 'Order baru dibuat.', updated_by: data.userEmail ?? '',
+    note: 'Order baru dibuat.', updated_by: userEmail ?? '',
   });
   return order;
 }
@@ -847,9 +848,10 @@ export async function getUserClientOrders(userId) {
 
 export async function updateClientOrder(orderId, updates) {
   if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { userEmail, ...orderUpdates } = updates ?? {};
   const { data, error } = await supabase
     .from('client_orders')
-    .update(updates)
+    .update(orderUpdates)
     .eq('id', orderId)
     .select()
     .single();
