@@ -2,14 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Search, Copy, ExternalLink, RefreshCw, X,
-  MessageCircle, ChevronDown, Check, Upload, Loader2,
+  MessageCircle, ChevronDown, ChevronUp, Check, Upload, Loader2,
   Share2, Link, ToggleLeft, ToggleRight, Trash2, Edit,
   Clock, Package, Users, CheckCircle,
 } from 'lucide-react';
 import {
   createClientOrder, getUserClientOrders, updateClientOrder,
   deleteClientOrder, addOrderStatusUpdate, uploadOrderPhoto,
-  toggleOrderTracking,
+  toggleOrderTracking, getClientTrackingUrl,
 } from '../lib/supabase';
 
 // ── Status config ─────────────────────────────────────────────────────────────
@@ -82,6 +82,10 @@ function Field({ label, children, required }) {
       {children}
     </div>
   );
+}
+
+function resolveTrackingUrl(order) {
+  return order?.tracking_url || getClientTrackingUrl(order?.tracking_token);
 }
 
 // ── Add / Edit modal ──────────────────────────────────────────────────────────
@@ -244,7 +248,11 @@ function AddEditModal({ order, user, onClose, onSaved }) {
           <div className="rounded-2xl border border-zinc-200 bg-zinc-50/70 overflow-hidden">
             <button
               type="button"
-              onClick={() => setShowAdvanced(prev => !prev)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowAdvanced(prev => !prev);
+              }}
               className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-zinc-100/80 transition-colors"
             >
               <div>
@@ -299,7 +307,11 @@ function AddEditModal({ order, user, onClose, onSaved }) {
                 <div>
                   <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-3">Link Tracking Klien</p>
                   <label className="flex items-start gap-3 cursor-pointer">
-                    <button type="button" onClick={() => set('is_tracking_active', !form.is_tracking_active)}
+                    <button type="button" onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      set('is_tracking_active', !form.is_tracking_active);
+                    }}
                       className={`w-10 h-5 rounded-full transition-colors flex items-center px-0.5 mt-0.5 ${form.is_tracking_active ? 'bg-blue-500' : 'bg-zinc-300'}`}>
                       <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${form.is_tracking_active ? 'translate-x-5' : 'translate-x-0'}`} />
                     </button>
@@ -308,10 +320,10 @@ function AddEditModal({ order, user, onClose, onSaved }) {
                       <p className="text-xs text-zinc-500 mt-0.5">Jika aktif, link progress bisa langsung dibuka tanpa login.</p>
                     </div>
                   </label>
-                  {isEdit && order?.tracking_url && (
+                  {isEdit && resolveTrackingUrl(order) && (
                     <div className="mt-3 bg-zinc-50 rounded-lg p-3 flex items-center gap-2">
                       <Link size={12} className="text-zinc-400 shrink-0" />
-                      <span className="text-xs text-zinc-500 truncate flex-1">{order.tracking_url}</span>
+                      <span className="text-xs text-zinc-500 truncate flex-1">{resolveTrackingUrl(order)}</span>
                     </div>
                   )}
                 </div>
@@ -347,7 +359,7 @@ function UpdateStatusModal({ order, user, onClose, onUpdated }) {
 
   const waLink = () => {
     const phone = order.client_phone?.replace(/\D/g, '').replace(/^0/, '62');
-    const trackUrl = order.tracking_url ?? '';
+    const trackUrl = resolveTrackingUrl(order);
     const msg = `Halo ${order.client_name}! Ada update untuk pesanan ${order.order_number}:\n\n` +
       `📦 ${order.product_name}\n🔄 Status: ${STATUS_CONFIG[status]?.label}\n` +
       (note ? `📝 ${note}\n` : '') +
@@ -459,7 +471,7 @@ function DetailDrawer({ order, user, onClose, onEdit, onUpdate, onRefresh }) {
 
   const waShare = () => {
     const phone = order.client_phone?.replace(/\D/g, '').replace(/^0/, '62');
-    const msg = `Halo ${order.client_name}! Anda bisa memantau progress pesanan ${order.order_number} (${order.product_name}) secara real-time di:\n${order.tracking_url}`;
+    const msg = `Halo ${order.client_name}! Anda bisa memantau progress pesanan ${order.order_number} (${order.product_name}) secara real-time di:\n${resolveTrackingUrl(order)}`;
     const url = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank', 'noopener');
   };
@@ -620,19 +632,27 @@ function DetailDrawer({ order, user, onClose, onEdit, onUpdate, onRefresh }) {
             <div className="space-y-4">
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
                 <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">Link Tracking Klien</p>
-                <p className="text-xs text-zinc-600 break-all mb-3">{order.tracking_url ?? '—'}</p>
+                <p className="text-xs text-zinc-600 break-all mb-3">{resolveTrackingUrl(order) || '—'}</p>
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => copy(order.tracking_url ?? '')}
+                  <button onClick={() => copy(resolveTrackingUrl(order))}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-blue-200 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-50 transition-colors">
                     {copied ? <Check size={11} /> : <Copy size={11} />}
                     {copied ? 'Disalin!' : 'Copy Link'}
                   </button>
-                  <a href={order.tracking_url} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-blue-200 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-50 transition-colors">
+                  <a href={resolveTrackingUrl(order)} target="_blank" rel="noopener noreferrer"
+                    className={`flex items-center gap-1.5 px-3 py-1.5 border text-xs font-semibold rounded-lg transition-colors ${
+                      order.is_tracking_active
+                        ? 'bg-white border-blue-200 text-blue-700 hover:bg-blue-50'
+                        : 'bg-zinc-100 border-zinc-200 text-zinc-400 pointer-events-none'
+                    }`}>
                     <ExternalLink size={11} /> Buka Preview
                   </a>
-                  <button onClick={waShare}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors">
+                  <button onClick={waShare} disabled={!order.is_tracking_active}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                      order.is_tracking_active
+                        ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                        : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+                    }`}>
                     <Share2 size={11} /> Share WA
                   </button>
                 </div>
@@ -690,8 +710,15 @@ export default function ClientTracker({ user }) {
   const withDeadline   = orders.filter(o => o.deadline_date && ACTIVE_STATUSES.includes(o.current_status));
   const nearDeadline   = withDeadline.filter(o => new Date(o.deadline_date) - Date.now() < 3 * 86400000).length;
 
-  const handleSaved = () => { load(); setShowAdd(false); setEditOrder(null); };
-  const handleUpdated = () => { load(); setUpdateOrder(null); if (detailOrder) { setDetailOrder(prev => orders.find(o => o.id === prev?.id) ?? prev); } };
+  const handleSaved = async () => {
+    await load();
+    setShowAdd(false);
+    setEditOrder(null);
+  };
+  const handleUpdated = async () => {
+    await load();
+    setUpdateOrder(null);
+  };
 
   const handleDelete = async (id) => {
     if (!confirm('Hapus order ini?')) return;
@@ -807,7 +834,7 @@ export default function ClientTracker({ user }) {
                             className="p-1.5 text-zinc-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                             <RefreshCw size={13} />
                           </button>
-                          <button onClick={() => { copy(order.tracking_url ?? ''); }} title="Copy Link"
+                          <button onClick={() => { copy(resolveTrackingUrl(order)); }} title="Copy Link"
                             className="p-1.5 text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
                             {copied ? <Check size={13} className="text-emerald-500" /> : <Link size={13} />}
                           </button>

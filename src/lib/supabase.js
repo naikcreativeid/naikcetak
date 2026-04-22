@@ -803,6 +803,11 @@ function generateTrackingToken() {
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
+export function getClientTrackingUrl(token) {
+  if (!token) return '';
+  return `${window.location.origin}${window.location.pathname}#/track/${token}`;
+}
+
 export async function createClientOrder(userId, data) {
   if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
   const { count } = await supabase
@@ -812,7 +817,7 @@ export async function createClientOrder(userId, data) {
   const year        = new Date().getFullYear();
   const orderNumber = `ORD-${year}-${String((count ?? 0) + 1).padStart(3, '0')}`;
   const token       = generateTrackingToken();
-  const trackingUrl = `${window.location.origin}/#/track/${token}`;
+  const trackingUrl = getClientTrackingUrl(token);
 
   const { data: order, error } = await supabase
     .from('client_orders')
@@ -875,7 +880,9 @@ export async function addOrderStatusUpdate(orderId, { statusFrom, statusTo, note
 
 export async function getOrderByToken(token) {
   if (!isConfigured) return null;
-  const { data, error } = await supabase.rpc('get_order_by_token', { p_token: token });
+  const cleanToken = token?.trim();
+  if (!cleanToken) return null;
+  const { data, error } = await supabase.rpc('get_order_by_token', { p_token: cleanToken });
   if (error) return null;
   return data;
 }
