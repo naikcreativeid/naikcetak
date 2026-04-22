@@ -1,4 +1,4 @@
-import { CheckCircle2, PackageCheck, Scissors, TrendingUp } from 'lucide-react';
+import { Calculator, CheckCircle2, PackageCheck, Scissors, TrendingUp } from 'lucide-react';
 
 function BrowserFrame({ children, className = '' }) {
   return (
