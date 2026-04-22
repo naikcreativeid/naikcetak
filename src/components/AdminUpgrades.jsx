@@ -4,12 +4,12 @@ import {
   ShieldCheck, Search, RefreshCw, CheckCircle2, XCircle,
   Eye, Phone, Mail, ExternalLink, Loader2, Clock, UserPlus,
   KeyRound, Trash2, Zap, Users, ChevronDown, ChevronUp,
-  Bell, TrendingUp, AlertCircle, Timer,
+  Bell, TrendingUp, AlertCircle, Timer, MessageCircle,
 } from 'lucide-react';
 import {
   adminGetUpgradeRequests, adminApproveUpgrade, adminRejectUpgrade,
   adminGetAllUsers, adminCreateUser, adminResetUserPassword, adminDirectUpgrade, adminDeleteUser,
-  getSubscriptionStats, adminGetReminderList, adminMarkReminderSent,
+  getSubscriptionStats, adminGetReminderList, adminMarkReminderSent, getPaymentProofAccessUrl,
 } from '../lib/supabase';
 import { PLANS } from '../lib/plans';
 import { formatRp } from '../lib/masterData';
@@ -41,6 +41,49 @@ function timeAgo(dateStr) {
   if (diff < 3600)  return `${Math.floor(diff / 60)} mnt lalu`;
   if (diff < 86400) return `${Math.floor(diff / 3600)} jam lalu`;
   return `${Math.floor(diff / 86400)} hari lalu`;
+}
+
+const FOLLOW_UP_STORAGE_KEY = 'naikcetak-followup-templates-v1';
+
+const FOLLOW_UP_DEFAULTS = [
+  'Halo {name}, terima kasih sudah daftar di naikcetak. Kalau Anda mau, saya bisa bantu aktifkan langkah awal supaya akun Anda langsung siap dipakai.',
+  'Halo {name}, saya follow up ya. Sudah sempat coba dashboard naikcetak? Kalau ada yang membingungkan, saya bantu arahkan langkah berikutnya.',
+  'Halo {name}, banyak percetakan mulai dari Starter lalu lanjut pakai fitur Pro setelah workflow-nya terasa cocok. Kalau Anda mau lihat alurnya, saya bisa bantu jelaskan singkat.',
+  'Halo {name}, saya ingatkan lagi ya. Kalau Anda ingin mempercepat invoice, quotation, dan tracking order, saya bisa bantu tunjukkan fitur yang paling relevan untuk percetakan Anda.',
+  'Halo {name}, ini follow up terakhir dari saya untuk saat ini. Kalau Anda ingin lanjut setup atau upgrade kapan pun, tinggal balas WhatsApp ini ya. Saya siap bantu.',
+];
+
+function getStoredFollowUpTemplates() {
+  if (typeof window === 'undefined') return FOLLOW_UP_DEFAULTS;
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(FOLLOW_UP_STORAGE_KEY) ?? '[]');
+    if (!Array.isArray(parsed) || parsed.length !== 5) return FOLLOW_UP_DEFAULTS;
+    return parsed.map((item, index) => (typeof item === 'string' && item.trim() ? item : FOLLOW_UP_DEFAULTS[index]));
+  } catch {
+    return FOLLOW_UP_DEFAULTS;
+  }
+}
+
+function saveFollowUpTemplates(templates) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(FOLLOW_UP_STORAGE_KEY, JSON.stringify(templates));
+}
+
+function normalizePhone(phone) {
+  const digits = (phone ?? '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('62')) return digits;
+  if (digits.startsWith('0')) return `62${digits.slice(1)}`;
+  return digits;
+}
+
+function buildFollowUpText(template, user) {
+  const displayName = user.full_name || user.company_name || user.email || 'kak';
+  return template
+    .replaceAll('{name}', displayName)
+    .replaceAll('{email}', user.email || '')
+    .replaceAll('{plan}', (PLANS[user.plan]?.name ?? user.plan ?? 'Starter'));
 }
 
 function waApproveLink(req, expiresAt) {
@@ -213,8 +256,32 @@ function RequestRow({ req, adminEmail, onApproved, onRejected }) {
   const [showReject, setShowReject] = useState(false);
   const [proofOpen, setProofOpen]   = useState(false);
   const [approvedAt, setApprovedAt] = useState(null);
+  const [proofUrl, setProofUrl]     = useState('');
+  const [proofLoading, setProofLoading] = useState(false);
+  const [proofError, setProofError] = useState('');
 
   const plan = PLANS[req.requested_plan];
+
+  const openProof = async () => {
+    if (!req.payment_proof_url) return;
+
+    setProofOpen(true);
+    setProofLoading(true);
+    setProofError('');
+
+    try {
+      const signedUrl = await getPaymentProofAccessUrl(req.payment_proof_url);
+      setProofUrl(signedUrl || req.payment_proof_url);
+    } catch (err) {
+      setProofError(err.message || 'Bukti transfer tidak bisa dimuat.');
+      setProofUrl(req.payment_proof_url);
+    } finally {
+      setProofLoading(false);
+    }
+  };
+
+  const previewUrl = proofUrl || req.payment_proof_url;
+  const isPdfProof = /\.pdf($|\?)/i.test(previewUrl ?? '');
 
   const handleApprove = async () => {
     if (!confirm(`Setujui upgrade ${req.user_email} ke ${plan?.name}?`)) return;
@@ -254,7 +321,7 @@ function RequestRow({ req, adminEmail, onApproved, onRejected }) {
         </td>
         <td className="px-4 py-3 hidden lg:table-cell">
           {req.payment_proof_url ? (
-            <button onClick={() => setProofOpen(true)}
+            <button onClick={openProof}
               className="flex items-center gap-1 text-xs text-blue-600 hover:underline font-semibold">
               <Eye size={12} /> Lihat
             </button>
@@ -302,15 +369,37 @@ function RequestRow({ req, adminEmail, onApproved, onRejected }) {
               <div className="flex items-center justify-between p-4 border-b border-zinc-100">
                 <span className="text-sm font-bold text-zinc-800">Bukti Transfer</span>
                 <div className="flex gap-2">
-                  <a href={req.payment_proof_url} target="_blank" rel="noopener noreferrer"
+                  <a href={previewUrl} target="_blank" rel="noopener noreferrer"
                     className="text-xs text-blue-600 flex items-center gap-1 hover:underline">
                     <ExternalLink size={11} /> Buka di tab baru
                   </a>
                   <button onClick={() => setProofOpen(false)} className="text-zinc-400 hover:text-zinc-700">✕</button>
                 </div>
               </div>
-              <img src={req.payment_proof_url} alt="Bukti Transfer"
-                className="w-full max-h-[60vh] object-contain bg-zinc-50 p-4" />
+              <div className="bg-zinc-50 p-4 min-h-[280px] flex items-center justify-center">
+                {proofLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-zinc-500">
+                    <Loader2 size={15} className="animate-spin" /> Memuat bukti transfer...
+                  </div>
+                ) : proofError ? (
+                  <div className="text-center space-y-2">
+                    <p className="text-sm text-red-500">{proofError}</p>
+                    <a href={previewUrl} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:underline">
+                      <ExternalLink size={12} /> Buka bukti di tab baru
+                    </a>
+                  </div>
+                ) : isPdfProof ? (
+                  <iframe
+                    title="Bukti Transfer PDF"
+                    src={previewUrl}
+                    className="w-full h-[60vh] rounded-xl bg-white"
+                  />
+                ) : (
+                  <img src={previewUrl} alt="Bukti Transfer"
+                    className="w-full max-h-[60vh] object-contain bg-zinc-50" />
+                )}
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -633,6 +722,106 @@ function UpgradeRequestsTab({ user }) {
   );
 }
 
+function FollowUpComposer({ targetUser, onClose }) {
+  const [templates, setTemplates] = useState(() => getStoredFollowUpTemplates());
+
+  const phone = normalizePhone(targetUser.phone_number);
+
+  const setTemplate = (index, value) => {
+    setTemplates(prev => {
+      const next = [...prev];
+      next[index] = value;
+      saveFollowUpTemplates(next);
+      return next;
+    });
+  };
+
+  const openWhatsApp = (index) => {
+    const text = buildFollowUpText(templates[index], targetUser);
+    const baseUrl = phone ? `https://wa.me/${phone}` : 'https://wa.me/';
+    window.open(`${baseUrl}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-60 bg-black/50 flex items-center justify-center p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <motion.div initial={{ y: 12, opacity: 0.96 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 12, opacity: 0.96 }}
+        className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
+          <div>
+            <h3 className="text-base font-bold text-zinc-900">Follow Up Text</h3>
+            <p className="text-xs text-zinc-500 mt-1">
+              Atur 5 pesan follow-up untuk {targetUser.full_name || targetUser.email}. Klik tombol WhatsApp untuk mengirim manual.
+            </p>
+          </div>
+          <button onClick={onClose} className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors">
+            <XCircle size={16} />
+          </button>
+        </div>
+
+        <div className="px-6 py-5 space-y-5 max-h-[80vh] overflow-y-auto">
+          <div className="inline-flex flex-wrap items-center gap-2 rounded-full bg-emerald-50 px-3 py-2">
+            <button
+              type="button"
+              onClick={() => openWhatsApp(0)}
+              className="w-10 h-10 rounded-full bg-white text-emerald-600 border border-emerald-200 flex items-center justify-center hover:bg-emerald-100 transition-colors"
+              title="Kirim follow-up 1 via WhatsApp"
+            >
+              <Phone size={18} />
+            </button>
+            {templates.map((_, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => openWhatsApp(index)}
+                className="w-10 h-10 rounded-full bg-zinc-100 text-zinc-700 font-bold text-sm hover:bg-zinc-200 transition-colors"
+                title={`Kirim follow-up ${index + 1}`}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </div>
+
+          {!phone && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Nomor WhatsApp user belum ada. Tombol kirim tetap membuka WhatsApp, tetapi Anda perlu memilih kontak secara manual.
+            </div>
+          )}
+
+          <div className="space-y-4">
+            {templates.map((template, index) => (
+              <div key={index} className="rounded-2xl border border-zinc-200 p-4 bg-zinc-50/60">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-sm font-bold text-zinc-700">
+                      {index + 1}
+                    </span>
+                    <p className="text-sm font-semibold text-zinc-800">Follow-up {index + 1}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openWhatsApp(index)}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg transition-colors"
+                  >
+                    <MessageCircle size={13} /> WhatsApp
+                  </button>
+                </div>
+                <textarea
+                  value={template}
+                  onChange={(e) => setTemplate(index, e.target.value)}
+                  rows={3}
+                  className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm resize-y focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ── Tab: Kelola User ──────────────────────────────────────────────────────────
 function ManageUsersTab({ user }) {
   const [users,       setUsers]       = useState([]);
@@ -641,6 +830,7 @@ function ManageUsersTab({ user }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [resetTarget, setResetTarget] = useState(null);
   const [upgradeTarget, setUpgradeTarget] = useState(null);
+  const [followUpTarget, setFollowUpTarget] = useState(null);
 
   // Add user form state
   const [newName,     setNewName]     = useState('');
@@ -805,6 +995,12 @@ function ManageUsersTab({ user }) {
                           className="flex items-center gap-1 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-2 py-1.5 rounded-lg transition-colors">
                           <Zap size={11} /> Upgrade
                         </button>
+                        {u.plan === 'starter' && (
+                          <button onClick={() => setFollowUpTarget(u)}
+                            className="flex items-center gap-1 text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-700 px-2 py-1.5 rounded-lg transition-colors">
+                            <MessageCircle size={11} /> Follow Up
+                          </button>
+                        )}
                         <button onClick={() => handleDelete(u)}
                           className="flex items-center gap-1 text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1.5 rounded-lg transition-colors">
                           <Trash2 size={11} />
@@ -832,6 +1028,12 @@ function ManageUsersTab({ user }) {
           <UpgradeUserModal targetUser={upgradeTarget}
             onDone={() => { setUpgradeTarget(null); fetchUsers(); }}
             onCancel={() => setUpgradeTarget(null)} />
+        )}
+        {followUpTarget && (
+          <FollowUpComposer
+            targetUser={followUpTarget}
+            onClose={() => setFollowUpTarget(null)}
+          />
         )}
       </AnimatePresence>
     </div>

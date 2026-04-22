@@ -293,6 +293,49 @@ export async function uploadPaymentProof(userId, requestId, file) {
   return publicUrl;
 }
 
+function extractStorageObjectPath(fileUrl, bucket) {
+  if (!fileUrl || !bucket) return null;
+
+  try {
+    if (!fileUrl.startsWith('http')) {
+      return fileUrl.startsWith(`${bucket}/`) ? fileUrl.slice(bucket.length + 1) : fileUrl;
+    }
+
+    const parsed = new URL(fileUrl);
+    const publicMarker = `/object/public/${bucket}/`;
+    const signMarker = `/object/sign/${bucket}/`;
+
+    if (parsed.pathname.includes(publicMarker)) {
+      return decodeURIComponent(parsed.pathname.split(publicMarker)[1] ?? '');
+    }
+    if (parsed.pathname.includes(signMarker)) {
+      return decodeURIComponent(parsed.pathname.split(signMarker)[1] ?? '');
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+export async function getPaymentProofAccessUrl(fileUrl, expiresIn = 3600) {
+  if (!isConfigured || !fileUrl) return fileUrl ?? null;
+
+  const objectPath = extractStorageObjectPath(fileUrl, 'payment-proofs');
+  if (!objectPath) return fileUrl;
+
+  const { data, error } = await supabase.storage
+    .from('payment-proofs')
+    .createSignedUrl(objectPath, expiresIn);
+
+  if (error || !data?.signedUrl) {
+    console.warn('[payment-proof] signed url fallback:', error?.message ?? 'missing signed URL');
+    return fileUrl;
+  }
+
+  return data.signedUrl;
+}
+
 // ── Admin Functions ───────────────────────────────────────────────────────────
 
 export async function adminGetUpgradeRequests(adminEmail) {
