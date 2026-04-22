@@ -483,7 +483,7 @@ export default function App() {
             user={user}
             currentPlan={planHook.plan}
             onClose={() => setShowUpgrade(false)}
-            onSuccess={() => { setShowUpgrade(false); planHook.refreshPlan(); }}
+            onSuccess={() => { planHook.refreshPlan(); }}
           />
         )}
       </AnimatePresence>

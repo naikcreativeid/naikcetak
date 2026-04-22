@@ -417,6 +417,20 @@ export async function getUserUpgradeRequests(userId) {
   return data ?? [];
 }
 
+export async function getUpgradeRequestByOrderId(userId, orderId) {
+  if (!isConfigured || !userId || !orderId) return null;
+
+  const { data, error } = await supabase
+    .from('upgrade_requests')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('order_id', orderId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ?? null;
+}
+
 export async function uploadPaymentProof(userId, requestId, file) {
   if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
   const ext = file.name.split('.').pop();

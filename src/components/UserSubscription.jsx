@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   CreditCard, Calendar, Clock, CheckCircle2, BarChart2,
@@ -6,7 +6,8 @@ import {
 } from 'lucide-react';
 import { usePlanContext } from '../contexts/PlanContext';
 import { PLANS } from '../lib/plans';
-import { getUserSubscriptionHistory } from '../lib/supabase';
+import { getUserSubscriptionHistory, getUserUpgradeRequests } from '../lib/supabase';
+import { getMidtransStatusLabel } from '../lib/midtrans';
 
 function daysUntil(date) {
   if (!date) return null;
@@ -48,21 +49,136 @@ const ACTION_LABELS = {
   grace_started: 'Masa Tenggang',
 };
 
+const PAYMENT_PROGRESS_META = {
+  pending: { label: 'Menunggu pembayaran', bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-400' },
+  settlement: { label: 'Pembayaran berhasil', bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+  capture: { label: 'Pembayaran berhasil', bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+  deny: { label: 'Pembayaran ditolak', bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' },
+  cancel: { label: 'Pembayaran dibatalkan', bg: 'bg-zinc-100', text: 'text-zinc-600', dot: 'bg-zinc-400' },
+  expire: { label: 'Pembayaran kedaluwarsa', bg: 'bg-zinc-100', text: 'text-zinc-600', dot: 'bg-zinc-400' },
+  failure: { label: 'Pembayaran gagal', bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' },
+  approved: { label: 'Paket aktif', bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+  rejected: { label: 'Permintaan ditolak', bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' },
+  cancelled: { label: 'Permintaan dibatalkan', bg: 'bg-zinc-100', text: 'text-zinc-600', dot: 'bg-zinc-400' },
+  manual_review: { label: 'Menunggu review admin', bg: 'bg-zinc-100', text: 'text-zinc-600', dot: 'bg-zinc-400' },
+};
+
+const LIVE_PROGRESS_STATUSES = ['pending', 'manual_review'];
+const SUCCESS_PROGRESS_STATUSES = ['settlement', 'capture', 'approved'];
+
+function getRequestProgress(req) {
+  if (!req) return null;
+  if (req.transaction_status) return req.transaction_status;
+  if (req.status === 'approved') return 'approved';
+  if (req.status === 'rejected') return 'rejected';
+  if (req.status === 'cancelled') return 'cancelled';
+  return 'manual_review';
+}
+
+function PaymentProgressBadge({ status }) {
+  const meta = PAYMENT_PROGRESS_META[status] ?? PAYMENT_PROGRESS_META.pending;
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${meta.bg} ${meta.text}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+      {meta.label}
+    </span>
+  );
+}
+
+function formatDateTime(date) {
+  if (!date) return '—';
+  return new Date(date).toLocaleString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export default function UserSubscription({ user, onUpgradeClick }) {
-  const { planData, plan } = usePlanContext();
+  const { planData, plan, refreshPlan } = usePlanContext();
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [latestRequest, setLatestRequest] = useState(null);
+  const [loadingRequest, setLoadingRequest] = useState(false);
 
   const planCfg = PLANS[plan] ?? PLANS.starter;
 
-  useEffect(() => {
+  const loadHistory = useCallback(async () => {
     if (!user) return;
     setLoadingHistory(true);
-    getUserSubscriptionHistory(user.id)
-      .then(rows => setHistory(rows ?? []))
-      .catch(() => setHistory([]))
-      .finally(() => setLoadingHistory(false));
+    try {
+      const rows = await getUserSubscriptionHistory(user.id);
+      setHistory(rows ?? []);
+    } catch {
+      setHistory([]);
+    } finally {
+      setLoadingHistory(false);
+    }
   }, [user]);
+
+  const loadLatestRequest = useCallback(async ({ silent = false } = {}) => {
+    if (!user) return null;
+    if (!silent) setLoadingRequest(true);
+    try {
+      const rows = await getUserUpgradeRequests(user.id);
+      const nextRequest = rows?.[0] ?? null;
+      setLatestRequest(nextRequest);
+      return nextRequest;
+    } catch {
+      setLatestRequest(null);
+      return null;
+    } finally {
+      if (!silent) setLoadingRequest(false);
+    }
+  }, [user]);
+
+  const latestRequestProgress = getRequestProgress(latestRequest);
+
+  useEffect(() => {
+    if (!user) return;
+    loadHistory();
+  }, [user, loadHistory]);
+
+  useEffect(() => {
+    if (!user) return;
+    loadLatestRequest();
+  }, [user, loadLatestRequest]);
+
+  useEffect(() => {
+    if (!user || !LIVE_PROGRESS_STATUSES.includes(latestRequestProgress)) return undefined;
+
+    let cancelled = false;
+    let intervalId;
+
+    const poll = async () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+
+      const nextRequest = await loadLatestRequest({ silent: true });
+      if (cancelled || !nextRequest) return;
+
+      const nextProgress = getRequestProgress(nextRequest);
+      if (SUCCESS_PROGRESS_STATUSES.includes(nextProgress)) {
+        await refreshPlan?.();
+        await loadHistory();
+      }
+    };
+
+    intervalId = window.setInterval(poll, 5000);
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') poll();
+    };
+
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [user, latestRequestProgress, loadLatestRequest, loadHistory, refreshPlan]);
 
   const {
     planStatus, planExpiresAt, gracePeriodEndsAt,
@@ -155,6 +271,108 @@ export default function UserSubscription({ user, onUpgradeClick }) {
             {plan === 'starter' ? 'Upgrade ke Pro' : 'Perpanjang Langganan'}
             <ArrowRight size={14} />
           </button>
+        )}
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+        className="bg-white rounded-2xl border border-zinc-200 p-5"
+      >
+        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+          <h3 className="text-sm font-bold text-zinc-800 flex items-center gap-2">
+            <CreditCard size={14} className="text-blue-500" /> Status Pembayaran Terakhir
+          </h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => loadLatestRequest()}
+              disabled={loadingRequest}
+              className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 px-2.5 py-1 text-xs font-semibold text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            >
+              <RefreshCw size={11} className={loadingRequest ? 'animate-spin' : ''} />
+              Refresh sekarang
+            </button>
+            {latestRequestProgress && <PaymentProgressBadge status={latestRequestProgress} />}
+          </div>
+        </div>
+
+        {loadingRequest ? (
+          <div className="text-xs text-zinc-400">Memuat status pembayaran...</div>
+        ) : !latestRequest ? (
+          <div className="text-xs text-zinc-400">
+            Belum ada transaksi upgrade. Saat Anda checkout paket Pro, progres Midtrans akan muncul di sini.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <InfoTile
+                icon={Zap}
+                label="Paket"
+                value={`${PLANS[latestRequest.requested_plan]?.name ?? latestRequest.requested_plan} · ${latestRequest.billing_cycle === 'yearly' ? 'Tahunan' : 'Bulanan'}`}
+              />
+              <InfoTile
+                icon={CreditCard}
+                label="Status gateway"
+                value={getMidtransStatusLabel(latestRequest.transaction_status || latestRequest.status)}
+                highlight={['settlement', 'capture', 'approved'].includes(latestRequestProgress) ? 'text-emerald-600' : ''}
+              />
+            </div>
+
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 space-y-2">
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-zinc-500">Nominal</span>
+                <span className="font-bold text-zinc-900">Rp {(latestRequest.amount_to_pay ?? 0).toLocaleString('id-ID')}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-zinc-500">Metode</span>
+                <span className="font-semibold text-zinc-800">
+                  {latestRequest.payment_method
+                    ? latestRequest.payment_method.replace(/^midtrans_/i, '').replace(/_/g, ' ')
+                    : '—'}
+                </span>
+              </div>
+              {latestRequest.order_id && (
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-zinc-500">Order ID</span>
+                  <span className="font-mono text-xs text-zinc-700">{latestRequest.order_id}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-zinc-500">Dibuat</span>
+                <span className="text-zinc-700">{formatDateTime(latestRequest.created_at || latestRequest.submitted_at)}</span>
+              </div>
+              {latestRequest.paid_at && (
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-zinc-500">Terbayar</span>
+                  <span className="text-emerald-600 font-semibold">{formatDateTime(latestRequest.paid_at)}</span>
+                </div>
+              )}
+              {latestRequest.webhook_received_at && (
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-zinc-500">Webhook diterima</span>
+                  <span className="text-zinc-700">{formatDateTime(latestRequest.webhook_received_at)}</span>
+                </div>
+              )}
+            </div>
+
+            {['pending', 'manual_review'].includes(latestRequestProgress) && (
+              <p className="text-xs text-zinc-500">
+                Jika Anda sudah menyelesaikan pembayaran di popup Midtrans, tunggu beberapa saat sampai webhook diproses otomatis.
+              </p>
+            )}
+
+            {['deny', 'cancel', 'expire', 'failure', 'rejected', 'cancelled'].includes(latestRequestProgress) && (
+              <p className="text-xs text-red-500">
+                Transaksi terakhir belum berhasil. Anda bisa mencoba checkout ulang kapan saja.
+              </p>
+            )}
+
+            {['settlement', 'capture', 'approved'].includes(latestRequestProgress) && (
+              <p className="text-xs text-emerald-600">
+                Pembayaran sudah terkonfirmasi. Paket Anda akan aktif otomatis atau sudah aktif.
+              </p>
+            )}
+          </div>
         )}
       </motion.div>
 

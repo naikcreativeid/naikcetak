@@ -11,6 +11,7 @@ import {
   adminGetAllUsers, adminCreateUser, adminResetUserPassword, adminDirectUpgrade, adminDeleteUser,
   getSubscriptionStats, adminGetReminderList, adminMarkReminderSent, getPaymentProofAccessUrl,
 } from '../lib/supabase';
+import { getMidtransStatusLabel } from '../lib/midtrans';
 import { PLANS } from '../lib/plans';
 import { formatRp } from '../lib/masterData';
 import AdminSubscriptionDashboard from './AdminSubscriptionDashboard';
@@ -23,6 +24,25 @@ const STATUS_META = {
   approved: { label: 'Disetujui', bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
   rejected: { label: 'Ditolak',   bg: 'bg-red-100',    text: 'text-red-700',    dot: 'bg-red-500'    },
   cancelled:{ label: 'Dibatalkan',bg: 'bg-zinc-100',   text: 'text-zinc-500',   dot: 'bg-zinc-400'   },
+};
+
+const TRANSACTION_STATUS_META = {
+  manual_review: { label: 'Manual review', bg: 'bg-zinc-100', text: 'text-zinc-600', dot: 'bg-zinc-400' },
+  pending: { label: 'Pending', bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-400' },
+  settlement: { label: 'Settlement', bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+  capture: { label: 'Capture', bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+  deny: { label: 'Denied', bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' },
+  cancel: { label: 'Cancelled', bg: 'bg-zinc-100', text: 'text-zinc-600', dot: 'bg-zinc-400' },
+  cancelled: { label: 'Cancelled', bg: 'bg-zinc-100', text: 'text-zinc-600', dot: 'bg-zinc-400' },
+  expire: { label: 'Expired', bg: 'bg-zinc-100', text: 'text-zinc-600', dot: 'bg-zinc-400' },
+  failure: { label: 'Failed', bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' },
+  approved: { label: 'Paid', bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+  rejected: { label: 'Rejected', bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' },
+};
+
+const PAYMENT_GATEWAY_META = {
+  midtrans: { label: 'Midtrans', bg: 'bg-sky-100', text: 'text-sky-700' },
+  manual: { label: 'Manual', bg: 'bg-zinc-100', text: 'text-zinc-600' },
 };
 
 function StatusBadge({ status }) {
@@ -42,6 +62,47 @@ function timeAgo(dateStr) {
   if (diff < 3600)  return `${Math.floor(diff / 60)} mnt lalu`;
   if (diff < 86400) return `${Math.floor(diff / 3600)} jam lalu`;
   return `${Math.floor(diff / 86400)} hari lalu`;
+}
+
+function formatDateTime(dateStr) {
+  if (!dateStr) return 'â€”';
+  return new Date(dateStr).toLocaleString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function isAutomatedMidtrans(req) {
+  return (req.payment_gateway ?? 'manual') === 'midtrans' || Boolean(req.order_id);
+}
+
+function getTransactionState(req) {
+  if (req.transaction_status) return req.transaction_status;
+  if (req.status === 'approved') return 'approved';
+  if (req.status === 'rejected') return 'rejected';
+  if (req.status === 'cancelled') return 'cancelled';
+  return 'manual_review';
+}
+
+function getPaymentMethodLabel(method) {
+  if (!method) return 'â€”';
+  return method
+    .replace(/^midtrans_/i, '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function TransactionBadge({ status }) {
+  const meta = TRANSACTION_STATUS_META[status] ?? TRANSACTION_STATUS_META.pending;
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-semibold ${meta.bg} ${meta.text}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+      {meta.label}
+    </span>
+  );
 }
 
 const FOLLOW_UP_STORAGE_KEY = 'naikcetak-followup-templates-v1';
@@ -262,6 +323,9 @@ function RequestRow({ req, adminEmail, onApproved, onRejected }) {
   const [proofError, setProofError] = useState('');
 
   const plan = PLANS[req.requested_plan];
+  const automatedPayment = isAutomatedMidtrans(req);
+  const transactionState = getTransactionState(req);
+  const gatewayMeta = PAYMENT_GATEWAY_META[automatedPayment ? 'midtrans' : 'manual'];
 
   const openProof = async () => {
     if (!req.payment_proof_url) return;
@@ -317,8 +381,21 @@ function RequestRow({ req, adminEmail, onApproved, onRejected }) {
         <td className="px-4 py-3 text-sm font-bold text-zinc-800 whitespace-nowrap">
           {formatRp(req.amount_to_pay)}
         </td>
-        <td className="px-4 py-3 text-xs text-zinc-500 capitalize hidden md:table-cell">
-          {(req.payment_method ?? '—').replace('_', ' ')}
+        <td className="px-4 py-3 hidden md:table-cell">
+          <div className="space-y-1 min-w-[210px]">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className={`inline-flex items-center rounded-full px-2 py-1 text-[11px] font-semibold ${gatewayMeta.bg} ${gatewayMeta.text}`}>
+                {gatewayMeta.label}
+              </span>
+              <TransactionBadge status={transactionState} />
+            </div>
+            <p className="text-xs text-zinc-600">{getPaymentMethodLabel(req.payment_method)}</p>
+            {req.order_id && (
+              <p className="text-[11px] text-zinc-400">
+                Order ID: <span className="font-mono">{req.order_id}</span>
+              </p>
+            )}
+          </div>
         </td>
         <td className="px-4 py-3 hidden lg:table-cell">
           {req.payment_proof_url ? (
@@ -327,16 +404,23 @@ function RequestRow({ req, adminEmail, onApproved, onRejected }) {
               <Eye size={12} /> Lihat
             </button>
           ) : (
-            <span className="text-xs text-zinc-300">Belum upload</span>
+            <span className="text-xs text-zinc-300">{automatedPayment ? 'Otomatis' : 'Belum upload'}</span>
           )}
         </td>
-        <td className="px-4 py-3 text-xs text-zinc-400 whitespace-nowrap hidden md:table-cell">
-          <Clock size={10} className="inline mr-1" />
-          {timeAgo(req.submitted_at)}
+        <td className="px-4 py-3 hidden md:table-cell">
+          <div className="space-y-1 min-w-[170px] text-[11px] text-zinc-500">
+            <p className="flex items-center gap-1 text-zinc-400">
+              <Clock size={10} />
+              Diajukan {timeAgo(req.submitted_at)}
+            </p>
+            <p>Submit: {formatDateTime(req.submitted_at)}</p>
+            {req.paid_at && <p className="text-emerald-600">Paid: {formatDateTime(req.paid_at)}</p>}
+            {req.webhook_received_at && <p>Webhook: {formatDateTime(req.webhook_received_at)}</p>}
+          </div>
         </td>
         <td className="px-4 py-3"><StatusBadge status={req.status} /></td>
         <td className="px-4 py-3">
-          {req.status === 'pending' ? (
+          {req.status === 'pending' && !automatedPayment ? (
             <div className="flex items-center gap-1">
               <button onClick={handleApprove} disabled={approving}
                 className="flex items-center gap-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50">
@@ -347,6 +431,11 @@ function RequestRow({ req, adminEmail, onApproved, onRejected }) {
                 className="flex items-center gap-1 text-xs font-bold bg-red-100 hover:bg-red-200 text-red-700 px-2.5 py-1.5 rounded-lg transition-colors">
                 <XCircle size={11} /> Tolak
               </button>
+            </div>
+          ) : req.status === 'pending' && automatedPayment ? (
+            <div className="space-y-1 text-[11px] text-zinc-500">
+              <p className="font-semibold text-sky-700">Diproses otomatis</p>
+              <p>{getMidtransStatusLabel(req.transaction_status || 'pending')}</p>
             </div>
           ) : req.status === 'approved' ? (
             <a href={waApproveLink(req, approvedAt ?? req.reviewed_at)} target="_blank" rel="noopener noreferrer"
@@ -645,13 +734,14 @@ function UpgradeRequestsTab({ user }) {
     pending:  requests.filter(r => r.status === 'pending').length,
     approved: requests.filter(r => r.status === 'approved').length,
     rejected: requests.filter(r => r.status === 'rejected').length,
+    cancelled: requests.filter(r => r.status === 'cancelled').length,
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-sm text-zinc-500">
-          {counts.pending} menunggu · {counts.approved} disetujui · {counts.rejected} ditolak
+          {counts.pending} menunggu · {counts.approved} disetujui · {counts.rejected} ditolak · {counts.cancelled} dibatalkan
         </p>
         <button onClick={fetchRequests} disabled={loading} className="flex items-center gap-2 btn-ghost text-sm">
           <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
@@ -660,7 +750,7 @@ function UpgradeRequestsTab({ user }) {
 
       <div className="flex flex-wrap gap-3 items-center">
         <div className="flex bg-zinc-100 rounded-lg p-1 gap-1">
-          {[['all', 'Semua'], ['pending', 'Menunggu'], ['approved', 'Disetujui'], ['rejected', 'Ditolak']].map(([val, label]) => (
+          {[['all', 'Semua'], ['pending', 'Menunggu'], ['approved', 'Disetujui'], ['rejected', 'Ditolak'], ['cancelled', 'Dibatalkan']].map(([val, label]) => (
             <button key={val} onClick={() => setFilter(val)}
               className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-all ${filter === val ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'}`}>
               {label}
@@ -700,7 +790,7 @@ function UpgradeRequestsTab({ user }) {
                   <th className="px-4 py-3 text-xs font-semibold text-zinc-500">User</th>
                   <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Plan</th>
                   <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Nominal</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-zinc-500 hidden md:table-cell">Metode</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-zinc-500 hidden md:table-cell">Pembayaran</th>
                   <th className="px-4 py-3 text-xs font-semibold text-zinc-500 hidden lg:table-cell">Bukti</th>
                   <th className="px-4 py-3 text-xs font-semibold text-zinc-500 hidden md:table-cell">Waktu</th>
                   <th className="px-4 py-3 text-xs font-semibold text-zinc-500">Status</th>
