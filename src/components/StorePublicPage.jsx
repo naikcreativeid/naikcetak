@@ -408,27 +408,6 @@ export default function StorePublicPage({ slug }) {
                 ))}
               </div>
             </div>
-
-            <footer className="rounded-[28px] border border-zinc-200 bg-zinc-900 p-6 text-white shadow-sm">
-              <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
-                  <Package2 size={18} />
-                </span>
-                <div>
-                  <p className="text-sm font-bold">naikcetak</p>
-                  <p className="text-xs text-blue-100">Platform untuk percetakan Indonesia</p>
-                </div>
-              </div>
-              <p className="mt-4 text-sm leading-6 text-blue-100">
-                Cari percetakan lain atau daftarkan toko Anda sendiri agar klien bisa order lebih cepat.
-              </p>
-              <a
-                href="https://naikcetak.com"
-                className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-zinc-900 transition-colors hover:bg-blue-50"
-              >
-                Lihat percetakan lain
-              </a>
-            </footer>
           </aside>
         </section>
       </div>

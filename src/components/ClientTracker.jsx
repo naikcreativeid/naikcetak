@@ -73,6 +73,17 @@ function useCopy() {
   return { copied, copy };
 }
 
+function Field({ label, children, required }) {
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-zinc-600 mb-1">
+        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
 // ── Add / Edit modal ──────────────────────────────────────────────────────────
 const EMPTY_FORM = {
   client_name:'', client_phone:'', client_email:'',
@@ -108,6 +119,7 @@ function AddEditModal({ order, user, onClose, onSaved }) {
   } : { ...EMPTY_FORM });
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(Boolean(order));
   const isEdit = Boolean(order);
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
@@ -140,44 +152,38 @@ function AddEditModal({ order, user, onClose, onSaved }) {
     } finally { setLoading(false); }
   };
 
-  const F = ({ label, children, required }) => (
-    <div>
-      <label className="block text-xs font-semibold text-zinc-600 mb-1">
-        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
-      </label>
-      {children}
-    </div>
-  );
-
   const inp = 'w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition';
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-end p-4" onClick={e => e.target === e.currentTarget && onClose()}>
-      <motion.div initial={{ x: 420 }} animate={{ x: 0 }} exit={{ x: 420 }}
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-3 sm:p-4" onClick={e => e.target === e.currentTarget && onClose()}>
+      <motion.div initial={{ opacity: 0, y: 18, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 18, scale: 0.98 }}
         transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-        className="w-full max-w-lg bg-white rounded-2xl shadow-2xl flex flex-col h-full max-h-[96vh] overflow-hidden">
+        className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[94vh] overflow-hidden">
 
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 shrink-0">
-          <h2 className="font-bold text-zinc-900">{isEdit ? 'Edit Order' : 'Tambah Order Baru'}</h2>
+          <div>
+            <h2 className="font-bold text-zinc-900">{isEdit ? 'Edit Order' : 'Tambah Order Baru'}</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">Isi data klien dan detail pesanan terlebih dahulu. Pengaturan lanjutan bisa dibuka bila diperlukan.</p>
+          </div>
           <button onClick={onClose} className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors"><X size={16} /></button>
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 px-6 py-4 space-y-5">
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 px-6 py-4 pb-24 space-y-5">
 
           {/* Klien */}
           <div>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-3">Info Klien</p>
-            <div className="space-y-3">
-              <F label="Nama Klien" required>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="Nama Klien" required>
                 <input value={form.client_name} onChange={e => set('client_name', e.target.value)} className={inp} placeholder="Nama / perusahaan klien" />
-              </F>
-              <div className="grid grid-cols-2 gap-3">
-                <F label="No. WhatsApp">
-                  <input value={form.client_phone} onChange={e => set('client_phone', e.target.value)} className={inp} placeholder="08xx / 62xx" />
-                </F>
-                <F label="Email (opsional)">
+              </Field>
+              <Field label="No. WhatsApp">
+                <input value={form.client_phone} onChange={e => set('client_phone', e.target.value)} className={inp} placeholder="08xx / 62xx" />
+              </Field>
+              <div className="sm:col-span-2">
+                <Field label="Email (opsional)">
                   <input type="email" value={form.client_email} onChange={e => set('client_email', e.target.value)} className={inp} placeholder="email@klien.com" />
-                </F>
+                </Field>
               </div>
             </div>
           </div>
@@ -185,25 +191,27 @@ function AddEditModal({ order, user, onClose, onSaved }) {
           {/* Pesanan */}
           <div>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-3">Detail Pesanan</p>
-            <div className="space-y-3">
-              <F label="Nama Produk" required>
-                <input value={form.product_name} onChange={e => set('product_name', e.target.value)} className={inp} placeholder="Brosur A4 Full Color" />
-              </F>
-              <div className="grid grid-cols-2 gap-3">
-                <F label="Jenis Produk">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2">
+                <Field label="Nama Produk" required>
+                  <input value={form.product_name} onChange={e => set('product_name', e.target.value)} className={inp} placeholder="Brosur A4 Full Color" />
+                </Field>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:col-span-2">
+                <Field label="Jenis Produk">
                   <select value={form.product_type} onChange={e => set('product_type', e.target.value)} className={inp}>
                     <option value="">— Pilih —</option>
                     {PRODUCT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
-                </F>
-                <F label="Jumlah">
-                  <div className="flex gap-2">
+                </Field>
+                <Field label="Jumlah">
+                  <div className="grid grid-cols-[1fr_120px] gap-2">
                     <input type="number" value={form.quantity} onChange={e => set('quantity', e.target.value)} className={inp} min={1} />
-                    <select value={form.unit} onChange={e => set('unit', e.target.value)} className={`${inp} w-24 shrink-0`}>
+                    <select value={form.unit} onChange={e => set('unit', e.target.value)} className={inp}>
                       {['pcs','lembar','set','rim','kg'].map(u => <option key={u}>{u}</option>)}
                     </select>
                   </div>
-                </F>
+                </Field>
               </div>
             </div>
           </div>
@@ -211,79 +219,102 @@ function AddEditModal({ order, user, onClose, onSaved }) {
           {/* Spesifikasi */}
           <div>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-3">Spesifikasi</p>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <F label="Jenis Kertas">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:col-span-2">
+                <Field label="Jenis Kertas">
                   <input value={form.paper_type} onChange={e => set('paper_type', e.target.value)} className={inp} placeholder="Art Paper 150gsm" />
-                </F>
-                <F label="Ukuran">
+                </Field>
+                <Field label="Ukuran">
                   <input value={form.size} onChange={e => set('size', e.target.value)} className={inp} placeholder="21 × 29.7 cm" />
-                </F>
+                </Field>
               </div>
-              <F label="Finishing">
-                <input value={form.finishing} onChange={e => set('finishing', e.target.value)} className={inp} placeholder="Laminasi Doff + Spot UV" />
-              </F>
-              <F label="Catatan Khusus">
-                <textarea value={form.notes} onChange={e => set('notes', e.target.value)} className={`${inp} resize-none`} rows={2} placeholder="Catatan tambahan..." />
-              </F>
-            </div>
-          </div>
-
-          {/* Timeline */}
-          <div>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-3">Timeline</p>
-            <div className="grid grid-cols-2 gap-3">
-              <F label="Deadline" required={false}>
-                <input type="date" value={form.deadline_date} onChange={e => set('deadline_date', e.target.value)} className={inp} />
-              </F>
-              <F label="Estimasi Selesai">
-                <input type="date" value={form.estimated_done_date} onChange={e => set('estimated_done_date', e.target.value)} className={inp} />
-              </F>
-            </div>
-          </div>
-
-          {/* Harga */}
-          <div>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Harga (tidak tampil ke klien)</p>
-            <p className="text-[10px] text-zinc-400 mb-3">Hanya terlihat di dashboard Anda</p>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <F label="HPP (Rp)">
-                  <input type="number" value={form.price_hpp} onChange={e => set('price_hpp', e.target.value)} className={inp} placeholder="0" />
-                </F>
-                <F label="Harga Jual (Rp)">
-                  <input type="number" value={form.price_sell} onChange={e => set('price_sell', e.target.value)} className={inp} placeholder="0" />
-                </F>
+              <div className="sm:col-span-2">
+                <Field label="Finishing">
+                  <input value={form.finishing} onChange={e => set('finishing', e.target.value)} className={inp} placeholder="Laminasi Doff + Spot UV" />
+                </Field>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <F label="DP (Rp)">
-                  <input type="number" value={form.dp_amount} onChange={e => set('dp_amount', e.target.value)} className={inp} placeholder="0" />
-                </F>
-                <F label="Status DP">
-                  <button type="button" onClick={() => set('dp_paid', !form.dp_paid)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${form.dp_paid ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'border-zinc-200 text-zinc-500'}`}>
-                    {form.dp_paid ? <ToggleRight size={16} className="text-emerald-600" /> : <ToggleLeft size={16} />}
-                    {form.dp_paid ? 'Lunas' : 'Belum'}
-                  </button>
-                </F>
+              <div className="sm:col-span-2">
+                <Field label="Catatan Khusus">
+                  <textarea value={form.notes} onChange={e => set('notes', e.target.value)} className={`${inp} resize-none min-h-[96px]`} rows={4} placeholder="Catatan tambahan..." />
+                </Field>
               </div>
             </div>
           </div>
 
-          {/* Tracking */}
-          <div>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-3">Link Tracking Klien</p>
-            <label className="flex items-center gap-2.5 cursor-pointer">
-              <button type="button" onClick={() => set('is_tracking_active', !form.is_tracking_active)}
-                className={`w-10 h-5 rounded-full transition-colors flex items-center px-0.5 ${form.is_tracking_active ? 'bg-blue-500' : 'bg-zinc-300'}`}>
-                <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${form.is_tracking_active ? 'translate-x-5' : 'translate-x-0'}`} />
-              </button>
-              <span className="text-sm text-zinc-700">Aktifkan link tracking untuk klien</span>
-            </label>
-            {isEdit && order?.tracking_url && (
-              <div className="mt-3 bg-zinc-50 rounded-lg p-3 flex items-center gap-2">
-                <Link size={12} className="text-zinc-400 shrink-0" />
-                <span className="text-xs text-zinc-500 truncate flex-1">{order.tracking_url}</span>
+          <div className="rounded-2xl border border-zinc-200 bg-zinc-50/70 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(prev => !prev)}
+              className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-zinc-100/80 transition-colors"
+            >
+              <div>
+                <p className="text-sm font-semibold text-zinc-800">Pengaturan lanjutan</p>
+                <p className="text-xs text-zinc-500 mt-0.5">Timeline, harga internal, dan status link tracking klien.</p>
+              </div>
+              <div className="w-8 h-8 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-zinc-500 shrink-0">
+                {showAdvanced ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </div>
+            </button>
+
+            {showAdvanced && (
+              <div className="border-t border-zinc-200 bg-white px-4 py-4 space-y-5">
+                {/* Timeline */}
+                <div>
+                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-3">Timeline</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Field label="Deadline" required={false}>
+                      <input type="date" value={form.deadline_date} onChange={e => set('deadline_date', e.target.value)} className={inp} />
+                    </Field>
+                    <Field label="Estimasi Selesai">
+                      <input type="date" value={form.estimated_done_date} onChange={e => set('estimated_done_date', e.target.value)} className={inp} />
+                    </Field>
+                  </div>
+                </div>
+
+                {/* Harga */}
+                <div>
+                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Harga internal</p>
+                  <p className="text-[10px] text-zinc-400 mb-3">Bagian ini hanya terlihat di dashboard Anda.</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Field label="HPP (Rp)">
+                      <input type="number" value={form.price_hpp} onChange={e => set('price_hpp', e.target.value)} className={inp} placeholder="0" />
+                    </Field>
+                    <Field label="Harga Jual (Rp)">
+                      <input type="number" value={form.price_sell} onChange={e => set('price_sell', e.target.value)} className={inp} placeholder="0" />
+                    </Field>
+                    <Field label="DP (Rp)">
+                      <input type="number" value={form.dp_amount} onChange={e => set('dp_amount', e.target.value)} className={inp} placeholder="0" />
+                    </Field>
+                    <Field label="Status DP">
+                      <button type="button" onClick={() => set('dp_paid', !form.dp_paid)}
+                        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all w-full ${form.dp_paid ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'border-zinc-200 text-zinc-500 bg-white'}`}>
+                        {form.dp_paid ? <ToggleRight size={16} className="text-emerald-600" /> : <ToggleLeft size={16} />}
+                        {form.dp_paid ? 'Lunas' : 'Belum'}
+                      </button>
+                    </Field>
+                  </div>
+                </div>
+
+                {/* Tracking */}
+                <div>
+                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-3">Link Tracking Klien</p>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <button type="button" onClick={() => set('is_tracking_active', !form.is_tracking_active)}
+                      className={`w-10 h-5 rounded-full transition-colors flex items-center px-0.5 mt-0.5 ${form.is_tracking_active ? 'bg-blue-500' : 'bg-zinc-300'}`}>
+                      <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${form.is_tracking_active ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </button>
+                    <div>
+                      <p className="text-sm text-zinc-700 font-medium">Aktifkan link tracking untuk klien</p>
+                      <p className="text-xs text-zinc-500 mt-0.5">Jika aktif, link progress bisa langsung dibuka tanpa login.</p>
+                    </div>
+                  </label>
+                  {isEdit && order?.tracking_url && (
+                    <div className="mt-3 bg-zinc-50 rounded-lg p-3 flex items-center gap-2">
+                      <Link size={12} className="text-zinc-400 shrink-0" />
+                      <span className="text-xs text-zinc-500 truncate flex-1">{order.tracking_url}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -291,7 +322,7 @@ function AddEditModal({ order, user, onClose, onSaved }) {
           {error && <p className="text-red-500 text-xs">{error}</p>}
         </form>
 
-        <div className="px-6 py-4 border-t border-zinc-100 shrink-0 flex gap-2">
+        <div className="px-6 py-4 border-t border-zinc-100 shrink-0 flex gap-2 bg-white">
           <button onClick={onClose} className="px-4 py-2.5 border border-zinc-200 rounded-xl text-sm text-zinc-600 hover:bg-zinc-50 transition-colors">Batal</button>
           <button onClick={handleSubmit} disabled={loading}
             className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
@@ -822,3 +853,4 @@ export default function ClientTracker({ user }) {
     </div>
   );
 }
+
