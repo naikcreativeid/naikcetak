@@ -5,7 +5,7 @@ import { FeatureMockup } from './Mockups';
 
 export default function FeaturesSection() {
   return (
-    <section id="fitur" className="bg-[var(--bg-gray)] px-4 py-16 lg:px-8 lg:py-24">
+    <section id="fitur" className="bg-[var(--bg-gray)] px-4 py-18 lg:px-8 lg:py-24">
       <div className="mx-auto max-w-7xl">
         <div className="reveal-base" data-reveal>
           <SectionHeading
@@ -15,7 +15,7 @@ export default function FeaturesSection() {
           />
         </div>
 
-        <div className="mt-14 space-y-10">
+        <div className="mt-14 space-y-8 sm:space-y-10">
           {FEATURES.map((feature, index) => {
             const reversed = index % 2 === 1;
             const Icon = feature.icon;
@@ -24,7 +24,7 @@ export default function FeaturesSection() {
               <article
                 key={feature.title}
                 data-reveal
-                className="reveal-base grid gap-8 rounded-[36px] border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-md)] lg:grid-cols-2 lg:p-8"
+                className="reveal-base grid gap-8 rounded-[32px] border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-md)] sm:p-6 lg:grid-cols-2 lg:gap-10 lg:rounded-[36px] lg:p-8"
               >
                 <div className={reversed ? 'lg:order-2' : ''}>
                   <FeatureMockup variant={feature.mockup} />
@@ -38,10 +38,10 @@ export default function FeaturesSection() {
                       <Icon size={14} />
                       {feature.label}
                     </div>
-                    <h3 className="mt-5 text-4xl font-display font-bold leading-tight tracking-[-0.03em] text-[var(--text-primary)]">
+                    <h3 className="mt-5 text-[clamp(2rem,4vw,2.5rem)] font-display font-bold leading-[1.14] tracking-[-0.02em] text-[var(--text-primary)] sm:leading-[1.08]">
                       {feature.title}
                     </h3>
-                    <p className="mt-5 text-lg leading-8 text-[var(--text-secondary)]">{feature.description}</p>
+                    <p className="mt-5 text-base leading-8 text-[var(--text-secondary)] sm:text-lg">{feature.description}</p>
                     <div className="mt-6 space-y-3">
                       {feature.bullets.map((bullet) => (
                         <div key={bullet} className="flex items-start gap-3 text-base text-[var(--text-primary)]">

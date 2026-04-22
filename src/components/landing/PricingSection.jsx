@@ -47,7 +47,7 @@ export default function PricingSection() {
   );
 
   return (
-    <section id="harga" className="bg-white px-4 py-16 lg:px-8 lg:py-24">
+    <section id="harga" className="bg-white px-4 py-18 lg:px-8 lg:py-24">
       <div className="mx-auto max-w-7xl">
         <div className="reveal-base" data-reveal>
           <SectionHeading
@@ -58,7 +58,7 @@ export default function PricingSection() {
         </div>
 
         <div className="mt-8 flex justify-center reveal-base" data-reveal>
-          <div className="inline-flex rounded-2xl border border-[var(--border)] bg-[var(--bg-gray)] p-1">
+          <div className="inline-flex w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--bg-gray)] p-1">
             {[
               ['monthly', 'Bulanan'],
               ['yearly', 'Tahunan (hemat 47%)'],
@@ -67,7 +67,7 @@ export default function PricingSection() {
                 key={value}
                 type="button"
                 onClick={() => setBilling(value)}
-                className={`rounded-2xl px-5 py-3 text-sm font-bold transition ${
+                className={`flex-1 rounded-2xl px-4 py-3 text-sm font-bold transition sm:px-5 ${
                   billing === value
                     ? 'bg-white text-[var(--brand-blue)] shadow-[var(--shadow-sm)]'
                     : 'text-[var(--text-secondary)]'
@@ -82,7 +82,7 @@ export default function PricingSection() {
         <div className="mt-12 grid gap-6 lg:grid-cols-[1fr_1.15fr]">
           <article
             data-reveal
-            className="reveal-base order-2 rounded-[32px] border border-[var(--border)] bg-[var(--bg-gray)] p-6 lg:order-1"
+            className="reveal-base order-2 rounded-[32px] border border-[var(--border)] bg-[var(--bg-gray)] p-5 sm:p-6 lg:order-1"
           >
             <p className="text-sm font-bold uppercase tracking-[0.22em] text-[var(--text-muted)]">Starter</p>
             <h3 className="mt-4 text-3xl font-bold text-[var(--text-primary)]">Gratis</h3>
@@ -113,7 +113,7 @@ export default function PricingSection() {
 
           <article
             data-reveal
-            className="reveal-base order-1 relative rounded-[36px] border-2 border-[var(--brand-blue)] bg-[linear-gradient(180deg,_#ffffff_0%,_#eff4ff_100%)] p-7 shadow-[var(--shadow-lg)] lg:order-2"
+            className="reveal-base order-1 relative rounded-[36px] border-2 border-[var(--brand-blue)] bg-[linear-gradient(180deg,_#ffffff_0%,_#eff4ff_100%)] p-5 shadow-[var(--shadow-lg)] sm:p-7 lg:order-2"
           >
             <div className="absolute left-7 top-0 -translate-y-1/2 rounded-full bg-[var(--brand-blue)] px-4 py-2 text-xs font-bold uppercase tracking-[0.25em] text-white">
               Paling Populer
@@ -154,7 +154,7 @@ export default function PricingSection() {
           </article>
         </div>
 
-        <div id="faq" className="mt-12 rounded-[32px] border border-[var(--border)] bg-[var(--bg-gray)] p-5 shadow-[var(--shadow-sm)] lg:p-7">
+        <div id="faq" className="mt-12 rounded-[32px] border border-[var(--border)] bg-[var(--bg-gray)] p-4 shadow-[var(--shadow-sm)] sm:p-5 lg:p-7">
           <p className="text-sm font-bold uppercase tracking-[0.25em] text-[var(--brand-blue)]">FAQ Mini</p>
           <div className="mt-5 divide-y divide-[var(--border)] overflow-hidden rounded-2xl border border-[var(--border)] bg-white">
             {FAQS.map((faq, index) => (
