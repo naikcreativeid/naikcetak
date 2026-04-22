@@ -15,6 +15,10 @@ function normalizePhone(phone) {
   return digits;
 }
 
+function formatPrice(amount) {
+  return `Rp ${Number(amount || 0).toLocaleString('id-ID')}`;
+}
+
 function Field({ label, required, icon: Icon, children, hint }) {
   return (
     <div>
@@ -68,7 +72,11 @@ export default function AccountProfile({
   }, [form]);
 
   const planConfig = PLANS[plan] ?? PLANS.starter;
+  const proPlan = PLANS.pro;
   const whatsappMissing = !normalizePhone(form.phone_number);
+  const promoMonthly = proPlan?.prices?.monthly ?? 149000;
+  const promoYearlyPerMonth = proPlan?.prices?.yearlyPerMonth ?? 79000;
+  const promoSavings = proPlan?.prices?.savingsPercent ?? 47;
 
   const setValue = (key, value) => {
     setSaved(false);
@@ -179,13 +187,13 @@ export default function AccountProfile({
               <span>Kelengkapan</span>
               <span>{completion}%</span>
             </div>
-            <div className="mt-3 h-2 rounded-full bg-zinc-100">
-              <div className="h-2 rounded-full bg-zinc-900 transition-all" style={{ width: `${completion}%` }} />
+              <div className="mt-3 h-2 rounded-full bg-zinc-100">
+                <div className="h-2 rounded-full bg-zinc-900 transition-all" style={{ width: `${completion}%` }} />
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-zinc-500">
+                Isi data asli Anda agar akun lebih cepat siap dipakai dan Anda bisa menerima info penting, panduan singkat, serta promo terbaik dari naikcetak.
+              </p>
             </div>
-            <p className="mt-3 text-xs leading-relaxed text-zinc-500">
-              Lengkapi profil untuk memudahkan follow up, aktivasi fitur, dan rekomendasi penggunaan yang lebih tepat.
-            </p>
-          </div>
 
           <div className="rounded-2xl border border-zinc-200 bg-white p-4">
             <p className="text-sm font-bold text-zinc-900">Status Langganan</p>
@@ -194,7 +202,7 @@ export default function AccountProfile({
               <p className="mt-1 text-xl font-black" style={{ color: planConfig.color }}>{planConfig.name}</p>
               <p className="mt-1 text-xs text-zinc-500">
                 {plan === 'starter'
-                  ? 'Isi WhatsApp agar admin bisa bantu onboarding dan follow up upgrade.'
+                  ? 'Isi WhatsApp aktif Anda untuk menerima panduan mulai, info promo Pro, dan prioritas saat ingin upgrade.'
                   : 'Profil Anda siap dipakai untuk fitur langganan aktif.'}
               </p>
             </div>
@@ -222,7 +230,7 @@ export default function AccountProfile({
                 label="Nomor WhatsApp"
                 required
                 icon={Phone}
-                hint="Gunakan format 08xxx atau 62xxx. Nomor ini dipakai admin untuk follow up akun Starter."
+                hint="Masukkan nomor WhatsApp aktif Anda. Kami akan kirim panduan mulai dan penawaran Pro terbaik ke nomor ini."
               >
                 <input
                   value={form.phone_number}
@@ -250,30 +258,62 @@ export default function AccountProfile({
             )}
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <p className="text-lg font-bold text-zinc-900">Kenapa WhatsApp penting?</p>
-            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
-              {[
-                {
-                  title: 'Onboarding Lebih Cepat',
-                  text: 'Admin bisa membantu aktivasi dan menjelaskan fitur yang paling relevan untuk percetakan Anda.',
-                },
-                {
-                  title: 'Follow Up User Starter',
-                  text: 'Tim Anda bisa menghubungi user Starter secara manual dengan template follow up yang sudah disiapkan.',
-                },
-                {
-                  title: 'Dorong Konversi ke Pro',
-                  text: 'Kontak aktif membuat follow up upgrade lebih terarah dan peluang upgrade menjadi lebih tinggi.',
-                },
-              ].map((item) => (
-                <div key={item.title} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                  <p className="text-sm font-bold text-zinc-800">{item.title}</p>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-500">{item.text}</p>
+          {plan === 'starter' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="overflow-hidden rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-sky-50 p-6 shadow-sm">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div className="max-w-2xl">
+                  <span className="inline-flex rounded-full bg-blue-600 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-white">
+                    Promo Upgrade Pro
+                  </span>
+                  <h3 className="mt-4 text-2xl font-black tracking-tight text-zinc-900">
+                    Buka semua fitur percetakan lebih cepat dengan harga hemat
+                  </h3>
+                  <p className="mt-3 text-sm leading-relaxed text-zinc-600">
+                    Isi nomor WhatsApp aktif Anda sekarang supaya kami bisa kirim panduan mulai, reminder fitur penting,
+                    dan penawaran upgrade Pro yang sedang berjalan. Banyak user Starter upgrade lebih cepat setelah tahu
+                    fitur mana yang paling berdampak untuk invoice, quotation, tracking order, dan toko publik.
+                  </p>
                 </div>
-              ))}
-            </div>
-          </motion.div>
+
+                <div className="rounded-3xl border border-blue-200 bg-white p-5 shadow-sm lg:min-w-[280px]">
+                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-blue-600">Harga Promo Saat Ini</p>
+                  <div className="mt-4 space-y-3">
+                    <div className="rounded-2xl bg-zinc-50 px-4 py-3">
+                      <p className="text-xs font-semibold text-zinc-500">Pro Bulanan</p>
+                      <p className="mt-1 text-2xl font-black text-zinc-900">{formatPrice(promoMonthly)}</p>
+                    </div>
+                    <div className="rounded-2xl bg-blue-50 px-4 py-3">
+                      <p className="text-xs font-semibold text-blue-600">Pro Tahunan</p>
+                      <p className="mt-1 text-2xl font-black text-blue-700">{formatPrice(promoYearlyPerMonth)}<span className="text-sm font-bold">/bulan</span></p>
+                      <p className="mt-1 text-xs font-semibold text-emerald-600">Hemat {promoSavings}% dibanding bulanan</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+                {[
+                  {
+                    title: 'Akses Fitur Lebih Lengkap',
+                    text: 'Invoice, quotation, tracking order, dan toko publik berjalan lebih maksimal tanpa batas Starter.',
+                  },
+                  {
+                    title: 'Respon Lebih Cepat',
+                    text: 'Nomor WhatsApp aktif memudahkan kami mengirim panduan singkat dan promo terbaik tanpa Anda tertinggal info.',
+                  },
+                  {
+                    title: 'Waktu Hemat, Closing Lebih Cepat',
+                    text: 'Begitu Anda siap, upgrade ke Pro bisa langsung diproses lebih cepat karena data akun Anda sudah lengkap.',
+                  },
+                ].map((item) => (
+                  <div key={item.title} className="rounded-2xl border border-white/80 bg-white/80 p-4 backdrop-blur">
+                    <p className="text-sm font-bold text-zinc-800">{item.title}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-zinc-500">{item.text}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
     </div>
