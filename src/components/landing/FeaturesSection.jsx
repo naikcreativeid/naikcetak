@@ -38,10 +38,7 @@ export default function FeaturesSection() {
                       <Icon size={14} />
                       {feature.label}
                     </div>
-                    <h3
-                      className="mt-5 text-4xl font-display italic leading-tight text-[var(--text-primary)]"
-                      style={{ fontFamily: '"Instrument Serif", serif' }}
-                    >
+                    <h3 className="mt-5 text-4xl font-display font-bold leading-tight tracking-[-0.03em] text-[var(--text-primary)]">
                       {feature.title}
                     </h3>
                     <p className="mt-5 text-lg leading-8 text-[var(--text-secondary)]">{feature.description}</p>

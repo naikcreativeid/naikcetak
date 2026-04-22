@@ -14,10 +14,7 @@ export default function HeroSection() {
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white/90 px-4 py-2 text-sm font-semibold text-[var(--brand-blue)] shadow-[var(--shadow-sm)]">
             Software manajemen percetakan all-in-one
           </div>
-          <h1
-            className="mt-6 text-[clamp(2rem,6vw,4.9rem)] font-display italic leading-[0.95] text-[var(--text-primary)]"
-            style={{ fontFamily: '"Instrument Serif", serif' }}
-          >
+          <h1 className="mt-6 text-[clamp(2rem,6vw,4.9rem)] font-display font-extrabold leading-[0.92] tracking-[-0.05em] text-[var(--text-primary)]">
             Percetakan Kamu Masih
             <br />
             Hitung Harga Pakai <span className="text-[var(--brand-blue)]">Excel?</span>

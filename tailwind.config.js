@@ -4,8 +4,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-        display: ['"Instrument Serif"', 'serif'],
+        sans: ['Manrope', 'system-ui', 'sans-serif'],
+        display: ['"Inter Tight"', 'Manrope', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'Consolas', 'monospace'],
       },
       colors: {

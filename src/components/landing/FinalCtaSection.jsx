@@ -8,10 +8,7 @@ export default function FinalCtaSection() {
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/10 text-4xl backdrop-blur">
             🖨️
           </div>
-          <h2
-            className="mx-auto mt-6 max-w-3xl text-4xl font-display italic leading-tight text-white sm:text-5xl"
-            style={{ fontFamily: '"Instrument Serif", serif' }}
-          >
+          <h2 className="mx-auto mt-6 max-w-3xl text-4xl font-display font-extrabold leading-[1.04] tracking-[-0.03em] text-white sm:text-5xl">
             Sudah Siap Hitung Lebih Cepat & Akurat?
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-blue-100">

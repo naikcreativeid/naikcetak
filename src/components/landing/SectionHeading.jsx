@@ -6,10 +6,7 @@ export default function SectionHeading({ eyebrow, title, subtitle, center = true
           {eyebrow}
         </p>
       ) : null}
-      <h2
-        className="font-display text-4xl italic leading-tight text-[var(--text-primary)] sm:text-5xl"
-        style={{ fontFamily: '"Instrument Serif", serif' }}
-      >
+      <h2 className="font-display text-4xl font-extrabold leading-[1.02] tracking-[-0.03em] text-[var(--text-primary)] sm:text-5xl">
         {title}
       </h2>
       {subtitle ? (
