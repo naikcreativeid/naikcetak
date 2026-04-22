@@ -4,7 +4,7 @@ import { STATS, TESTIMONIALS } from './constants';
 
 export default function ProofSection() {
   return (
-    <section className="bg-[var(--bg-gray)] px-4 py-18 lg:px-8 lg:py-24">
+    <section className="bg-[var(--bg-gray)] px-4 py-24 lg:px-8 lg:py-24">
       <div className="mx-auto max-w-7xl">
         <div className="reveal-base" data-reveal>
           <SectionHeading

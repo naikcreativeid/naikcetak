@@ -47,7 +47,7 @@ export default function PricingSection() {
   );
 
   return (
-    <section id="harga" className="bg-white px-4 py-18 lg:px-8 lg:py-24">
+    <section id="harga" className="bg-white px-4 py-24 lg:px-8 lg:py-24">
       <div className="mx-auto max-w-7xl">
         <div className="reveal-base" data-reveal>
           <SectionHeading
