@@ -808,9 +808,10 @@ export function getClientTrackingUrl(token) {
   return `${window.location.origin}${window.location.pathname}#/track/${token}`;
 }
 
-export async function createClientOrder(userId, data) {
+export async function createClientOrder(userId, data, userEmailArg = '') {
   if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
   const { userEmail, ...orderData } = data ?? {};
+  const auditEmail = userEmailArg || userEmail || '';
   const { count } = await supabase
     .from('client_orders')
     .select('*', { count: 'exact', head: true })
@@ -830,7 +831,7 @@ export async function createClientOrder(userId, data) {
   // Initial update log
   await supabase.from('order_updates').insert({
     order_id: order.id, status_from: null, status_to: 'order_masuk',
-    note: 'Order baru dibuat.', updated_by: userEmail ?? '',
+    note: 'Order baru dibuat.', updated_by: auditEmail,
   });
   return order;
 }

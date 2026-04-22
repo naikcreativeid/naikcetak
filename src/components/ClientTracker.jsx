@@ -143,12 +143,11 @@ function AddEditModal({ order, user, onClose, onSaved }) {
         dp_amount:      form.dp_amount ? parseInt(form.dp_amount) : null,
         deadline_date:  form.deadline_date || null,
         estimated_done_date: form.estimated_done_date || null,
-        userEmail:      user?.email,
       };
       if (isEdit) {
         await updateClientOrder(order.id, payload);
       } else {
-        await createClientOrder(user.id, payload);
+        await createClientOrder(user.id, payload, user?.email);
       }
       onSaved();
     } catch (err) {
