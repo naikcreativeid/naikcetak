@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package2, LogOut, User, Calculator, FileText, Brain,
   LayoutDashboard, Mail, Package, Timer, Menu, X, Zap,
-  Scissors, Printer, Database, Layers, Cpu, ShieldCheck, CreditCard,
+  Scissors, Printer, Database, Layers, Cpu, ShieldCheck, CreditCard, Store,
 } from 'lucide-react';
 import { logout } from '../lib/supabase';
 import { PLANS } from '../lib/plans';
@@ -22,6 +22,7 @@ const NAV_GROUPS = [
       { id: 'invoice',       Icon: FileText,   label: 'Invoice'         },
       { id: 'quotation',     Icon: Timer,      label: 'Quotation'       },
       { id: 'tracking',      Icon: Package,    label: 'Tracking Order'  },
+      { id: 'tokoSaya',      Icon: Store,      label: 'Toko Saya'       },
     ],
   },
   {

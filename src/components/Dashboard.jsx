@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calculator, FileText, Brain, Clock, Package2,
   Timer, Package, Scissors, Printer, Database, Layers,
-  Mail, RefreshCw, Trash2, Cloud, CloudOff, History,
+  Mail, RefreshCw, Trash2, Cloud, CloudOff, History, Store,
   TrendingUp, ChevronRight,
 } from 'lucide-react';
 import { getUserActivity, getUserProjects, deleteActivity, isConfigured } from '../lib/supabase';
@@ -75,6 +75,7 @@ const UTILITY_GROUPS = [
     items: [
       { id: 'quotation', Icon: Timer,   title: 'Quotation',        tag: null, iconBg: 'bg-orange-500' },
       { id: 'tracking',  Icon: Package, title: 'Tracking Order',   tag: null, iconBg: 'bg-teal-500'   },
+      { id: 'tokoSaya',  Icon: Store,   title: 'Toko Saya',        tag: 'Pro', iconBg: 'bg-blue-600'   },
       { id: 'email',     Icon: Mail,    title: 'Email & Proposal', tag: null, iconBg: 'bg-indigo-500' },
     ],
   },

@@ -26,6 +26,12 @@ const FEATURE_DESCRIPTIONS = {
     benefits: ['Klien pantau status order sendiri', 'Kurangi pertanyaan "order saya gimana?"', 'Link tracking unik per order'],
     impact: 'Hemat waktu CS, klien lebih puas',
   },
+  publicStore: {
+    emoji: 'ðŸª',
+    headline: 'Toko Online Percetakan',
+    benefits: ['Halaman publik dengan URL unik toko Anda', 'Klien request order langsung tanpa chat dulu', 'Order masuk rapi ke dashboard'],
+    impact: 'Buka kanal order baru 24/7 untuk percetakan Anda',
+  },
   exportPDF: {
     emoji: '📄',
     headline: 'Export PDF',

@@ -490,6 +490,310 @@ export async function resetPasswordByEmail(email, newPassword) {
   return data; // 'ok' | 'not_found'
 }
 
+// Public Storefront
+const STORE_ASSET_BUCKET = 'store-assets';
+
+export function sanitizeStoreSlug(value = '') {
+  return value
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 60);
+}
+
+export function generateStoreSlugCandidate(storeName = '') {
+  const slug = sanitizeStoreSlug(storeName).slice(0, 50);
+  return slug || 'toko-cetak';
+}
+
+export function getStoreUrl(slug, baseUrl = window.location.origin) {
+  return `${baseUrl.replace(/\/$/, '')}/${sanitizeStoreSlug(slug)}`;
+}
+
+export async function generateUniqueStoreSlug(userId, rawValue) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+
+  const requested = generateStoreSlugCandidate(rawValue);
+  let finalSlug = requested;
+  let counter = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('store_slug', finalSlug)
+      .maybeSingle();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    if (!data || data.id === userId) return finalSlug;
+
+    counter += 1;
+    finalSlug = `${requested.slice(0, Math.max(1, 57 - String(counter).length))}-${counter}`;
+  }
+}
+
+async function getPublicStoreProfile(slug) {
+  const cleanSlug = sanitizeStoreSlug(slug);
+  if (!cleanSlug) return null;
+
+  const fields = 'id, store_slug, store_name, store_tagline, store_city, store_whatsapp, store_logo_url, store_cover_url, store_description, store_instagram, store_is_active';
+
+  let result = await supabase
+    .from('public_store_profiles')
+    .select(fields)
+    .eq('store_slug', cleanSlug)
+    .maybeSingle();
+
+  if (result.error && result.error.code === 'PGRST205') {
+    result = await supabase
+      .from('user_profiles')
+      .select(fields)
+      .eq('store_slug', cleanSlug)
+      .eq('store_is_active', true)
+      .maybeSingle();
+  }
+
+  if (result.error && result.error.code !== 'PGRST116') throw result.error;
+  return result.data ?? null;
+}
+
+export async function getPublicStoreBySlug(slug) {
+  if (!isConfigured) return null;
+
+  const store = await getPublicStoreProfile(slug);
+  if (!store) return null;
+
+  let productsResult = await supabase
+    .from('public_store_products')
+    .select('id, name, category, description, min_price, max_price, min_order, unit, lead_time_days, sort_order')
+    .eq('store_slug', store.store_slug)
+    .order('sort_order', { ascending: true });
+
+  if (productsResult.error && productsResult.error.code === 'PGRST205') {
+    productsResult = await supabase
+      .from('store_products')
+      .select('id, name, category, description, min_price, max_price, min_order, unit, lead_time_days, sort_order')
+      .eq('user_id', store.id)
+      .eq('is_available', true)
+      .order('sort_order', { ascending: true });
+  }
+
+  if (productsResult.error) throw productsResult.error;
+
+  return {
+    store,
+    products: productsResult.data ?? [],
+  };
+}
+
+export async function submitPublicStoreOrder(slug, payload) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+
+  const store = await getPublicStoreProfile(slug);
+  if (!store?.store_is_active) throw new Error('Toko tidak ditemukan atau sedang nonaktif');
+
+  const quantity = Number(payload.quantity);
+  if (!payload.clientName?.trim() || !payload.clientPhone?.trim() || !payload.productName?.trim() || !quantity) {
+    throw new Error('Field wajib belum diisi lengkap');
+  }
+
+  const { data, error } = await supabase
+    .from('store_orders')
+    .insert({
+      store_user_id: store.id,
+      store_slug: store.store_slug,
+      client_name: payload.clientName.trim(),
+      client_phone: payload.clientPhone.trim(),
+      client_email: payload.clientEmail?.trim() || null,
+      product_name: payload.productName.trim(),
+      quantity,
+      unit: payload.unit?.trim() || 'pcs',
+      size: payload.size?.trim() || null,
+      finishing: payload.finishing?.trim() || null,
+      notes: payload.notes?.trim() || null,
+      status: 'pending',
+    })
+    .select('id')
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getStoreDashboardData(userId) {
+  if (!isConfigured || !userId) return { profile: null, products: [], orders: [] };
+
+  const [profileRes, productsRes, ordersRes] = await Promise.all([
+    supabase
+      .from('user_profiles')
+      .select('id, store_slug, store_name, store_tagline, store_city, store_whatsapp, store_logo_url, store_cover_url, store_is_active, store_instagram, store_description')
+      .eq('id', userId)
+      .maybeSingle(),
+    supabase
+      .from('store_products')
+      .select('*')
+      .eq('user_id', userId)
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('store_orders')
+      .select('*')
+      .eq('store_user_id', userId)
+      .order('created_at', { ascending: false }),
+  ]);
+
+  if (profileRes.error && profileRes.error.code !== 'PGRST116') throw profileRes.error;
+  if (productsRes.error) throw productsRes.error;
+  if (ordersRes.error) throw ordersRes.error;
+
+  return {
+    profile: profileRes.data ?? null,
+    products: productsRes.data ?? [],
+    orders: ordersRes.data ?? [],
+  };
+}
+
+export async function saveStoreProfile(userId, updates, { preserveExistingSlug = true } = {}) {
+  if (!isConfigured || !userId) throw new Error('Supabase belum dikonfigurasi');
+
+  const currentProfile = await getUserProfile(userId);
+  const nextName = updates.store_name ?? currentProfile?.store_name ?? '';
+  const wantsSlug = typeof updates.store_slug === 'string';
+
+  let nextSlug = currentProfile?.store_slug ?? null;
+  if (wantsSlug) {
+    nextSlug = await generateUniqueStoreSlug(userId, updates.store_slug);
+  } else if (!preserveExistingSlug || !nextSlug) {
+    nextSlug = await generateUniqueStoreSlug(userId, nextName || 'toko-cetak');
+  }
+
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .update({
+      ...updates,
+      store_slug: nextSlug,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', userId)
+    .select('id, store_slug, store_name, store_tagline, store_city, store_whatsapp, store_logo_url, store_cover_url, store_is_active, store_instagram, store_description')
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function uploadStoreAsset(userId, file, kind = 'logo') {
+  if (!isConfigured || !userId) throw new Error('Supabase belum dikonfigurasi');
+  if (!file) throw new Error('File belum dipilih');
+
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `${userId}/${kind}-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from(STORE_ASSET_BUCKET)
+    .upload(path, file, { upsert: true, contentType: file.type });
+
+  if (error) throw error;
+
+  const { data } = supabase.storage.from(STORE_ASSET_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
+
+export async function createStoreProduct(userId, payload) {
+  if (!isConfigured || !userId) throw new Error('Supabase belum dikonfigurasi');
+
+  const { data, error } = await supabase
+    .from('store_products')
+    .insert({
+      user_id: userId,
+      name: payload.name?.trim(),
+      category: payload.category?.trim() || null,
+      description: payload.description?.trim() || null,
+      min_price: payload.min_price ? Number(payload.min_price) : null,
+      max_price: payload.max_price ? Number(payload.max_price) : null,
+      min_order: payload.min_order ? Number(payload.min_order) : 1,
+      unit: payload.unit?.trim() || 'pcs',
+      lead_time_days: payload.lead_time_days ? Number(payload.lead_time_days) : 3,
+      is_available: payload.is_available ?? true,
+      sort_order: Number(payload.sort_order ?? 0),
+    })
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateStoreProduct(userId, productId, payload) {
+  if (!isConfigured || !userId) throw new Error('Supabase belum dikonfigurasi');
+
+  const { data, error } = await supabase
+    .from('store_products')
+    .update({
+      name: payload.name?.trim(),
+      category: payload.category?.trim() || null,
+      description: payload.description?.trim() || null,
+      min_price: payload.min_price ? Number(payload.min_price) : null,
+      max_price: payload.max_price ? Number(payload.max_price) : null,
+      min_order: payload.min_order ? Number(payload.min_order) : 1,
+      unit: payload.unit?.trim() || 'pcs',
+      lead_time_days: payload.lead_time_days ? Number(payload.lead_time_days) : 3,
+      is_available: payload.is_available ?? true,
+      sort_order: Number(payload.sort_order ?? 0),
+    })
+    .eq('id', productId)
+    .eq('user_id', userId)
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteStoreProduct(userId, productId) {
+  if (!isConfigured || !userId) throw new Error('Supabase belum dikonfigurasi');
+  const { error } = await supabase
+    .from('store_products')
+    .delete()
+    .eq('id', productId)
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function reorderStoreProducts(userId, productIds) {
+  if (!isConfigured || !userId) throw new Error('Supabase belum dikonfigurasi');
+  await Promise.all(productIds.map((id, index) => (
+    supabase
+      .from('store_products')
+      .update({ sort_order: index })
+      .eq('id', id)
+      .eq('user_id', userId)
+  )));
+}
+
+export async function updateStoreOrder(userId, orderId, updates) {
+  if (!isConfigured || !userId) throw new Error('Supabase belum dikonfigurasi');
+
+  const { data, error } = await supabase
+    .from('store_orders')
+    .update({
+      status: updates.status,
+      admin_notes: updates.admin_notes?.trim() || null,
+      estimated_price: updates.estimated_price ? Number(updates.estimated_price) : null,
+      quoted_at: updates.status === 'accepted' ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', orderId)
+    .eq('store_user_id', userId)
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 // ── Client Tracker ────────────────────────────────────────────────────────────
 
 function generateTrackingToken() {

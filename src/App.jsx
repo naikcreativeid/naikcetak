@@ -14,7 +14,7 @@ import InvoiceGenerator from './components/InvoiceGenerator';
 import Dashboard from './components/Dashboard';
 import AIBriefAnalyzer from './components/AIBriefAnalyzer';
 import EmailProposalGenerator from './components/EmailProposalGenerator';
-import OrderTrackingPortal from './components/OrderTrackingPortal';
+import ClientTracker from './components/ClientTracker';
 import TrackingPage from './components/TrackingPage';
 import QuotationCountdown from './components/QuotationCountdown';
 import QuotationClientPage from './components/QuotationClientPage';
@@ -37,6 +37,8 @@ import { ADMIN_EMAILS } from './lib/plans';
 import ResetPasswordPage from './components/ResetPasswordPage';
 import SubscriptionBanner from './components/SubscriptionBanner';
 import UserSubscription from './components/UserSubscription';
+import StorePublicPage from './components/StorePublicPage';
+import StorefrontManager, { LockedPreview } from './components/StorefrontManager';
 
 const INIT_IDENTITY = { productName: '', dimLength: '', dimWidth: '', dimHeight: '', gsm: '' };
 const INIT_SPECS    = { planoLength: 0, planoWidth: 0, flatLength: 0, flatWidth: 0, grip: 2, wasteRate: 5, colorCount: 4 };
@@ -64,6 +66,7 @@ export default function App() {
   const [activePage, setActivePage]     = useState('dashboard');
   const [carryOverData, setCarryOver]   = useState(null);
   const [hash, setHash]                 = useState(window.location.hash);
+  const [pathname, setPathname]         = useState(window.location.pathname);
 
   const planHook = usePlan(user);
 
@@ -72,6 +75,12 @@ export default function App() {
     const handler = () => setHash(window.location.hash);
     window.addEventListener('hashchange', handler);
     return () => window.removeEventListener('hashchange', handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = () => setPathname(window.location.pathname);
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
   }, []);
 
   // ── Auth listener — INITIAL_SESSION marks when auth is determined ────────
@@ -201,6 +210,15 @@ export default function App() {
     return <QuotationClientPage quotationId={quotationMatch[1]} />;
   }
 
+  const hostname = window.location.hostname;
+  const trimmedPath = pathname.replace(/^\/+|\/+$/g, '');
+  const reservedRoots = ['login', 'reset-password', 'track', 'quotation'];
+  const looksLikeStorePath = trimmedPath && !trimmedPath.includes('/') && !reservedRoots.includes(trimmedPath);
+
+  if (looksLikeStorePath) {
+    return <StorePublicPage slug={trimmedPath} />;
+  }
+
   // ── Reset password route ─────────────────────────────────────────────────
   // Supabase sends recovery token as: #access_token=...&type=recovery
   const isRecovery = hash.includes('type=recovery') || hash.startsWith('#/reset-password');
@@ -230,8 +248,7 @@ export default function App() {
   }
 
   // ── Landing page route ───────────────────────────────────────────────────
-  const hostname = window.location.hostname;
-  if (hostname === 'naikcetak.com' || hostname === 'www.naikcetak.com') {
+  if ((hostname === 'naikcetak.com' || hostname === 'www.naikcetak.com') && !trimmedPath) {
     return <LandingPage />;
   }
 
@@ -294,7 +311,11 @@ export default function App() {
           </FeatureGate>
         ) : activePage === 'tracking' ? (
           <FeatureGate feature="trackingOrder">
-            <OrderTrackingPortal />
+            <ClientTracker user={user} />
+          </FeatureGate>
+        ) : activePage === 'tokoSaya' ? (
+          <FeatureGate feature="publicStore" fallback={<LockedPreview />}>
+            <StorefrontManager user={user} />
           </FeatureGate>
         ) : activePage === 'quotation' ? (
           <FeatureGate feature="quotation">
