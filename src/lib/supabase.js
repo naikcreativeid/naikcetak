@@ -33,6 +33,21 @@ export async function register(email, password) {
 }
 
 const LANDING_URL = import.meta.env.VITE_LANDING_URL ?? 'https://naikcetak.com';
+const SITE_SETTINGS_TABLE = 'site_settings';
+const SITE_ASSET_BUCKET = 'site-assets';
+const SITE_SETTINGS_FALLBACK_KEY = 'naikcetak-site-settings-fallback';
+
+export const DEFAULT_SITE_SETTINGS = {
+  id: 'global',
+  site_title: 'naikcetak — HPP & ERP Kemasan',
+  meta_description: 'Hitung biaya cetak 10x lebih cepat. Kalkulator potong kertas, HPP, invoice, quotation, tracking order, dan AI assistant untuk percetakan Indonesia.',
+  meta_image_url: '',
+  favicon_url: '',
+  loading_logo_url: '',
+  disable_crawler: false,
+  disable_right_click: false,
+  updated_at: null,
+};
 
 export async function logout() {
   try {
@@ -221,6 +236,131 @@ export async function updateUserProfile(userId, updates) {
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', userId);
   if (error) throw error;
+}
+
+function readFallbackSiteSettings() {
+  if (typeof window === 'undefined') return DEFAULT_SITE_SETTINGS;
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(SITE_SETTINGS_FALLBACK_KEY) ?? '{}');
+    return { ...DEFAULT_SITE_SETTINGS, ...parsed };
+  } catch {
+    return DEFAULT_SITE_SETTINGS;
+  }
+}
+
+function writeFallbackSiteSettings(settings) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(SITE_SETTINGS_FALLBACK_KEY, JSON.stringify(settings));
+}
+
+function ensureMetaTag(selector, createTag) {
+  let el = document.querySelector(selector);
+  if (!el) {
+    el = document.createElement('meta');
+    Object.entries(createTag).forEach(([key, value]) => el.setAttribute(key, value));
+    document.head.appendChild(el);
+  }
+  return el;
+}
+
+export function applySiteSettingsToDocument(settingsInput) {
+  if (typeof document === 'undefined') return;
+  const settings = { ...DEFAULT_SITE_SETTINGS, ...(settingsInput ?? {}) };
+
+  document.title = settings.site_title || DEFAULT_SITE_SETTINGS.site_title;
+
+  ensureMetaTag('meta[name="description"]', { name: 'description' })
+    .setAttribute('content', settings.meta_description || DEFAULT_SITE_SETTINGS.meta_description);
+  ensureMetaTag('meta[property="og:title"]', { property: 'og:title' })
+    .setAttribute('content', settings.site_title || DEFAULT_SITE_SETTINGS.site_title);
+  ensureMetaTag('meta[property="og:description"]', { property: 'og:description' })
+    .setAttribute('content', settings.meta_description || DEFAULT_SITE_SETTINGS.meta_description);
+  ensureMetaTag('meta[property="og:image"]', { property: 'og:image' })
+    .setAttribute('content', settings.meta_image_url || '');
+  ensureMetaTag('meta[name="twitter:card"]', { name: 'twitter:card' })
+    .setAttribute('content', settings.meta_image_url ? 'summary_large_image' : 'summary');
+  ensureMetaTag('meta[name="twitter:title"]', { name: 'twitter:title' })
+    .setAttribute('content', settings.site_title || DEFAULT_SITE_SETTINGS.site_title);
+  ensureMetaTag('meta[name="twitter:description"]', { name: 'twitter:description' })
+    .setAttribute('content', settings.meta_description || DEFAULT_SITE_SETTINGS.meta_description);
+  ensureMetaTag('meta[name="twitter:image"]', { name: 'twitter:image' })
+    .setAttribute('content', settings.meta_image_url || '');
+  ensureMetaTag('meta[name="robots"]', { name: 'robots' })
+    .setAttribute('content', settings.disable_crawler ? 'noindex,nofollow,noarchive' : 'index,follow,max-image-preview:large');
+
+  let favicon = document.querySelector('link[rel="icon"]');
+  if (!favicon) {
+    favicon = document.createElement('link');
+    favicon.setAttribute('rel', 'icon');
+    document.head.appendChild(favicon);
+  }
+  favicon.setAttribute('href', settings.favicon_url || '/favicon.ico');
+}
+
+export async function getSiteSettings() {
+  if (!isConfigured) return readFallbackSiteSettings();
+
+  const { data, error } = await supabase
+    .from(SITE_SETTINGS_TABLE)
+    .select('*')
+    .eq('id', 'global')
+    .maybeSingle();
+
+  if (error) {
+    console.warn('[site-settings] falling back to local settings:', error.message);
+    return readFallbackSiteSettings();
+  }
+
+  const merged = { ...DEFAULT_SITE_SETTINGS, ...(data ?? {}) };
+  writeFallbackSiteSettings(merged);
+  return merged;
+}
+
+export async function saveSiteSettings(updates) {
+  const payload = {
+    ...DEFAULT_SITE_SETTINGS,
+    ...(updates ?? {}),
+    id: 'global',
+    updated_at: new Date().toISOString(),
+  };
+
+  if (!isConfigured) {
+    writeFallbackSiteSettings(payload);
+    return payload;
+  }
+
+  const { data, error } = await supabase
+    .from(SITE_SETTINGS_TABLE)
+    .upsert(payload, { onConflict: 'id' })
+    .select()
+    .single();
+
+  if (error) {
+    console.warn('[site-settings] save fallback:', error.message);
+    writeFallbackSiteSettings(payload);
+    return payload;
+  }
+
+  writeFallbackSiteSettings(data);
+  return data;
+}
+
+export async function uploadSiteAsset(file, kind = 'meta') {
+  if (!file) throw new Error('File belum dipilih');
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+
+  const ext = file.name.split('.').pop();
+  const safeKind = `${kind}`.replace(/[^a-z0-9_-]/gi, '').toLowerCase() || 'asset';
+  const path = `global/${safeKind}-${Date.now()}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from(SITE_ASSET_BUCKET)
+    .upload(path, file, { upsert: true, contentType: file.type });
+
+  if (error) throw error;
+
+  const { data } = supabase.storage.from(SITE_ASSET_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
 }
 
 // ── Usage Tracking ────────────────────────────────────────────────────────────

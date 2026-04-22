@@ -25,7 +25,7 @@ import MasterFinishing from './components/MasterFinishing';
 import MasterMesin from './components/MasterMesin';
 import { calculateImposition, calculateResults, calculateBulkSimulation } from './utils/calculator';
 import { suggestTechSpecs, generateBusinessAudit } from './lib/gemini';
-import { supabase, watchAuth, saveProject, isConfigured, getUserProfile } from './lib/supabase';
+import { supabase, watchAuth, saveProject, isConfigured, getUserProfile, applySiteSettingsToDocument, getSiteSettings } from './lib/supabase';
 import LandingPage from './components/LandingPage';
 import FeatureGate from './components/FeatureGate';
 import AuthPage from './components/AuthPage';
@@ -40,6 +40,7 @@ import UserSubscription from './components/UserSubscription';
 import StorePublicPage from './components/StorePublicPage';
 import StorefrontManager, { LockedPreview } from './components/StorefrontManager';
 import AccountProfile from './components/AccountProfile';
+import SiteSettingsPanel from './components/SiteSettingsPanel';
 
 const INIT_IDENTITY = { productName: '', dimLength: '', dimWidth: '', dimHeight: '', gsm: '' };
 const INIT_SPECS    = { planoLength: 0, planoWidth: 0, flatLength: 0, flatWidth: 0, grip: 2, wasteRate: 5, colorCount: 4 };
@@ -70,6 +71,7 @@ export default function App() {
   const [pathname, setPathname]         = useState(window.location.pathname);
   const [userProfile, setUserProfile]   = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [siteSettings, setSiteSettings] = useState(null);
 
   const planHook = usePlan(user);
 
@@ -117,6 +119,28 @@ export default function App() {
   useEffect(() => {
     refreshUserProfile();
   }, [refreshUserProfile]);
+
+  useEffect(() => {
+    getSiteSettings()
+      .then((settings) => {
+        setSiteSettings(settings);
+        applySiteSettingsToDocument(settings);
+      })
+      .catch((err) => console.error('Site settings load error:', err));
+  }, []);
+
+  useEffect(() => {
+    if (!siteSettings) return;
+    applySiteSettingsToDocument(siteSettings);
+  }, [siteSettings]);
+
+  useEffect(() => {
+    if (!siteSettings?.disable_right_click) return undefined;
+
+    const handler = (event) => event.preventDefault();
+    window.addEventListener('contextmenu', handler);
+    return () => window.removeEventListener('contextmenu', handler);
+  }, [siteSettings?.disable_right_click]);
 
   const starterNeedsWhatsapp = Boolean(
     user &&
@@ -394,6 +418,8 @@ export default function App() {
           <MasterMesin />
         ) : activePage === 'adminUpgrades' && isAdmin ? (
           <AdminUpgrades user={user} />
+        ) : activePage === 'siteSettings' && isAdmin ? (
+          <SiteSettingsPanel />
         ) : (
           <FeatureGate feature="kalkulatorHPP">
           <>
