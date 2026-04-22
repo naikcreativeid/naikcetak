@@ -25,7 +25,7 @@ import MasterFinishing from './components/MasterFinishing';
 import MasterMesin from './components/MasterMesin';
 import { calculateImposition, calculateResults, calculateBulkSimulation } from './utils/calculator';
 import { suggestTechSpecs, generateBusinessAudit } from './lib/gemini';
-import { supabase, watchAuth, saveProject, isConfigured } from './lib/supabase';
+import { supabase, watchAuth, saveProject, isConfigured, getUserProfile } from './lib/supabase';
 import LandingPage from './components/LandingPage';
 import FeatureGate from './components/FeatureGate';
 import AuthPage from './components/AuthPage';
@@ -39,6 +39,7 @@ import SubscriptionBanner from './components/SubscriptionBanner';
 import UserSubscription from './components/UserSubscription';
 import StorePublicPage from './components/StorePublicPage';
 import StorefrontManager, { LockedPreview } from './components/StorefrontManager';
+import AccountProfile from './components/AccountProfile';
 
 const INIT_IDENTITY = { productName: '', dimLength: '', dimWidth: '', dimHeight: '', gsm: '' };
 const INIT_SPECS    = { planoLength: 0, planoWidth: 0, flatLength: 0, flatWidth: 0, grip: 2, wasteRate: 5, colorCount: 4 };
@@ -67,8 +68,28 @@ export default function App() {
   const [carryOverData, setCarryOver]   = useState(null);
   const [hash, setHash]                 = useState(window.location.hash);
   const [pathname, setPathname]         = useState(window.location.pathname);
+  const [userProfile, setUserProfile]   = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   const planHook = usePlan(user);
+
+  const refreshUserProfile = useCallback(async () => {
+    if (!user) {
+      setUserProfile(null);
+      setProfileLoading(false);
+      return;
+    }
+
+    setProfileLoading(true);
+    try {
+      const profile = await getUserProfile(user.id);
+      setUserProfile(profile);
+    } catch (err) {
+      console.error('Profile load error:', err);
+    } finally {
+      setProfileLoading(false);
+    }
+  }, [user]);
 
   // ── Hash-based public tracking route ────────────────────────────────────
   useEffect(() => {
@@ -92,6 +113,25 @@ export default function App() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    refreshUserProfile();
+  }, [refreshUserProfile]);
+
+  const starterNeedsWhatsapp = Boolean(
+    user &&
+    !isAdmin &&
+    !planHook.loading &&
+    !profileLoading &&
+    planHook.plan === 'starter' &&
+    !userProfile?.phone_number
+  );
+
+  useEffect(() => {
+    if (starterNeedsWhatsapp && activePage !== 'profil') {
+      setActivePage('profil');
+    }
+  }, [starterNeedsWhatsapp, activePage]);
 
   // ── Real-time HPP Calculation Engine ────────────────────────────────────
   useEffect(() => {
@@ -314,6 +354,15 @@ export default function App() {
           <FeatureGate feature="trackingOrder">
             <ClientTracker user={user} />
           </FeatureGate>
+        ) : activePage === 'profil' ? (
+          <AccountProfile
+            user={user}
+            profile={userProfile}
+            plan={planHook.plan}
+            enforceWhatsapp={starterNeedsWhatsapp}
+            onBack={() => setActivePage('dashboard')}
+            onSaved={() => { refreshUserProfile(); planHook.refreshPlan(); }}
+          />
         ) : activePage === 'tokoSaya' ? (
           <FeatureGate feature="publicStore" fallback={<LockedPreview />}>
             <StorefrontManager user={user} />

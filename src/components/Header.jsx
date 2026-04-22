@@ -112,7 +112,7 @@ function NavItems({ activePage, onNav, isAdmin }) {
   );
 }
 
-function UserSection({ user, onLoginClick }) {
+function UserSection({ user, onLoginClick, onProfileClick }) {
   const handleLogout = async () => {
     try { await logout(); } catch (e) { console.error(e); }
   };
@@ -125,10 +125,13 @@ function UserSection({ user, onLoginClick }) {
       </div>
       {user ? (
         <>
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-50">
+          <button
+            onClick={onProfileClick}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-50 hover:bg-zinc-100 transition-colors text-left"
+          >
             <User size={12} className="text-zinc-400 shrink-0" />
             <span className="text-xs text-zinc-600 truncate">{user.email}</span>
-          </div>
+          </button>
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-zinc-500 hover:text-red-600 hover:bg-red-50 transition-colors"
@@ -195,7 +198,7 @@ export default function Header({ user, onLoginClick, activePage, onPageChange, p
             <PlanBadge plan={plan} onUpgradeClick={onUpgradeClick} />
           </div>
         )}
-        <UserSection user={user} onLoginClick={onLoginClick} />
+        <UserSection user={user} onLoginClick={onLoginClick} onProfileClick={() => handleNav('profil')} />
       </aside>
 
       {/* ── Mobile top bar ────────────────────────────────────────────────── */}
@@ -208,7 +211,12 @@ export default function Header({ user, onLoginClick, activePage, onPageChange, p
         </div>
         <div className="flex items-center gap-2">
           {user && (
-            <span className="text-[11px] text-zinc-400 truncate max-w-[110px]">{user.email}</span>
+            <button
+              onClick={() => handleNav('profil')}
+              className="text-[11px] text-zinc-400 truncate max-w-[110px] hover:text-zinc-700 transition-colors"
+            >
+              {user.email}
+            </button>
           )}
           <button
             onClick={() => setDrawerOpen(v => !v)}
@@ -255,7 +263,7 @@ export default function Header({ user, onLoginClick, activePage, onPageChange, p
                   <PlanBadge plan={plan} onUpgradeClick={() => { setDrawerOpen(false); onUpgradeClick?.(); }} />
                 </div>
               )}
-              <UserSection user={user} onLoginClick={onLoginClick} />
+              <UserSection user={user} onLoginClick={onLoginClick} onProfileClick={() => handleNav('profil')} />
             </motion.aside>
           </>
         )}
