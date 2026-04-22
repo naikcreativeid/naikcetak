@@ -46,7 +46,7 @@ function PreviewCard({ title, url, metaTitle, description, icon: Icon }) {
   );
 }
 
-export default function SiteSettingsPanel() {
+export default function SiteSettingsPanel({ user }) {
   const [settings, setSettings] = useState(DEFAULT_SITE_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -79,7 +79,7 @@ export default function SiteSettingsPanel() {
     setUploading(key);
     setMessage('');
     try {
-      const url = await uploadSiteAsset(file, kind);
+      const url = await uploadSiteAsset(user?.id, file, kind);
       setSettings((prev) => ({ ...prev, [key]: url }));
     } catch (err) {
       setMessage(err.message || 'Upload aset gagal.');

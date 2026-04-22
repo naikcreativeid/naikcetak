@@ -419,7 +419,7 @@ export default function App() {
         ) : activePage === 'adminUpgrades' && isAdmin ? (
           <AdminUpgrades user={user} />
         ) : activePage === 'siteSettings' && isAdmin ? (
-          <SiteSettingsPanel />
+          <SiteSettingsPanel user={user} />
         ) : (
           <FeatureGate feature="kalkulatorHPP">
           <>

@@ -1093,7 +1093,7 @@ export default function AdminUpgrades({ user }) {
       {tab === 'users'         && <ManageUsersTab            user={user} />}
       {tab === 'reminders'     && <RemindersTab              user={user} />}
       {tab === 'subscriptions' && <AdminSubscriptionDashboard />}
-      {tab === 'seo'           && <SiteSettingsPanel />}
+      {tab === 'seo'           && <SiteSettingsPanel user={user} />}
     </div>
   );
 }

@@ -345,17 +345,18 @@ export async function saveSiteSettings(updates) {
   return data;
 }
 
-export async function uploadSiteAsset(file, kind = 'meta') {
+export async function uploadSiteAsset(userId, file, kind = 'meta') {
   if (!file) throw new Error('File belum dipilih');
   if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  if (!userId) throw new Error('User admin tidak ditemukan');
 
   const ext = file.name.split('.').pop();
   const safeKind = `${kind}`.replace(/[^a-z0-9_-]/gi, '').toLowerCase() || 'asset';
-  const path = `global/${safeKind}-${Date.now()}.${ext}`;
+  const path = `${userId}/${safeKind}-${Date.now()}.${ext}`;
 
   const { error } = await supabase.storage
     .from(SITE_ASSET_BUCKET)
-    .upload(path, file, { upsert: true, contentType: file.type });
+    .upload(path, file, { upsert: false, contentType: file.type });
 
   if (error) throw error;
 
@@ -991,16 +992,42 @@ export function getClientTrackingUrl(token) {
   return `${window.location.origin}${window.location.pathname}#/track/${token}`;
 }
 
+function generateOrderCodeSegment(length = 4) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => chars[byte % chars.length]).join('');
+}
+
+async function generateUniqueClientOrderNumber(userId) {
+  const date = new Date();
+  const datePart = [
+    String(date.getFullYear()).slice(-2),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('');
+  const userPart = (userId ?? '').replace(/-/g, '').slice(0, 4).toUpperCase() || 'NCCT';
+
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const orderNumber = `ORD-${datePart}-${userPart}-${generateOrderCodeSegment(4)}`;
+    const { data, error } = await supabase
+      .from('client_orders')
+      .select('id')
+      .eq('order_number', orderNumber)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return orderNumber;
+  }
+
+  throw new Error('Gagal membuat nomor order unik. Silakan coba lagi.');
+}
+
 export async function createClientOrder(userId, data, userEmailArg = '') {
   if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
   const { userEmail, ...orderData } = data ?? {};
   const auditEmail = userEmailArg || userEmail || '';
-  const { count } = await supabase
-    .from('client_orders')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId);
-  const year        = new Date().getFullYear();
-  const orderNumber = `ORD-${year}-${String((count ?? 0) + 1).padStart(3, '0')}`;
+  const orderNumber = await generateUniqueClientOrderNumber(userId);
   const token       = generateTrackingToken();
   const trackingUrl = getClientTrackingUrl(token);
 

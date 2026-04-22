@@ -65,6 +65,7 @@ create policy "Admins upload site assets"
   to authenticated
   with check (
     bucket_id = 'site-assets'
+    and split_part(name, '/', 1) = auth.uid()::text
     and auth.jwt() ->> 'email' in (
       'desaingracious3@gmail.com'
     )
@@ -77,12 +78,14 @@ create policy "Admins update site assets"
   to authenticated
   using (
     bucket_id = 'site-assets'
+    and split_part(name, '/', 1) = auth.uid()::text
     and auth.jwt() ->> 'email' in (
       'desaingracious3@gmail.com'
     )
   )
   with check (
     bucket_id = 'site-assets'
+    and split_part(name, '/', 1) = auth.uid()::text
     and auth.jwt() ->> 'email' in (
       'desaingracious3@gmail.com'
     )
@@ -95,6 +98,7 @@ create policy "Admins delete site assets"
   to authenticated
   using (
     bucket_id = 'site-assets'
+    and split_part(name, '/', 1) = auth.uid()::text
     and auth.jwt() ->> 'email' in (
       'desaingracious3@gmail.com'
     )
