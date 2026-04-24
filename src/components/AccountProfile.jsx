@@ -39,6 +39,7 @@ export default function AccountProfile({
   profile,
   plan = 'starter',
   enforceWhatsapp = false,
+  redirecting = false,
   onBack,
   onSaved,
 }) {
@@ -98,13 +99,21 @@ export default function AccountProfile({
 
     setSaving(true);
     try {
+      const normalizedPhone = normalizePhone(form.phone_number);
+      const savedProfile = {
+        ...profile,
+        full_name: form.full_name.trim(),
+        phone_number: normalizedPhone,
+        company_name: form.company_name.trim() || null,
+      };
+
       await updateUserProfile(user.id, {
         full_name: form.full_name.trim(),
-        phone_number: normalizePhone(form.phone_number),
+        phone_number: normalizedPhone,
         company_name: form.company_name.trim() || null,
       });
       setSaved(true);
-      onSaved?.();
+      await onSaved?.(savedProfile);
       window.setTimeout(() => setSaved(false), 2500);
     } catch (err) {
       setError(err.message || 'Gagal menyimpan profil.');
@@ -139,6 +148,7 @@ export default function AccountProfile({
               <button
                 type="button"
                 onClick={onBack}
+                disabled={saving || redirecting}
                 className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-500 transition-colors hover:bg-red-50"
               >
                 <ArrowLeft size={14} /> Kembali
@@ -147,10 +157,10 @@ export default function AccountProfile({
             <button
               type="button"
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || redirecting}
               className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-zinc-700 disabled:opacity-60"
             >
-              <Save size={14} /> {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+              <Save size={14} /> {saving ? 'Menyimpan...' : redirecting ? 'Membuka Dashboard...' : 'Simpan Perubahan'}
             </button>
           </div>
         </div>
@@ -255,6 +265,15 @@ export default function AccountProfile({
               <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700">
                 <CheckCircle2 size={14} /> Profil berhasil diperbarui
               </div>
+            )}
+            {redirecting && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-medium text-sky-700"
+              >
+                Profil berhasil disimpan. Menyiapkan dashboard Anda...
+              </motion.div>
             )}
           </motion.div>
 
