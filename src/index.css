@@ -102,3 +102,112 @@
   opacity: 1;
   transform: translateY(0);
 }
+
+/* ── Surat Jalan & PO Supplier — print styles ───────────────────────────── */
+.doc-print-root { font-family: 'Plus Jakarta Sans', Arial, sans-serif; color: #111; }
+
+.sj-half {
+  padding: 13mm 16mm 10mm;
+  height: 148.5mm;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  background: white;
+}
+.sj-divider {
+  border-top: 1.5px dashed #AAA;
+  margin: 0 10mm;
+  position: relative;
+  height: 0;
+}
+.sj-divider::after {
+  content: '✂  Potong di sini';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 7pt;
+  color: #888;
+  background: white;
+  padding: 0 6mm;
+  letter-spacing: 0.5px;
+}
+.sj-copy-tag {
+  position: absolute;
+  top: 10mm;
+  right: 14mm;
+  font-size: 7pt;
+  font-weight: 600;
+  color: #888;
+  border: 1px solid #CCC;
+  padding: 2pt 7pt;
+  border-radius: 3pt;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.doc-kop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2pt solid #111;
+  padding-bottom: 8pt;
+  margin-bottom: 10pt;
+}
+.doc-kop-logo { font-size: 15pt; font-weight: 800; letter-spacing: -0.5px; line-height: 1; }
+.doc-kop-addr { font-size: 7.5pt; color: #555; line-height: 1.5; margin-top: 3pt; max-width: 320pt; }
+.doc-title { font-size: 14pt; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; }
+.doc-no { font-size: 9pt; color: #444; margin-top: 2pt; }
+.doc-date { font-size: 8pt; color: #888; margin-top: 1pt; }
+.doc-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; margin-bottom: 10pt; }
+.doc-meta-label { font-size: 7pt; text-transform: uppercase; letter-spacing: 0.6px; color: #888; margin-bottom: 2pt; }
+.doc-meta-val { font-size: 9.5pt; font-weight: 600; color: #111; line-height: 1.4; white-space: pre-line; }
+.doc-tbl { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin-bottom: 8pt; }
+.doc-tbl th {
+  background: #F2F2F2; border: 1pt solid #DDD; padding: 5pt 7pt;
+  text-align: left; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #333;
+}
+.doc-tbl td { border: 1pt solid #DDD; padding: 5pt 7pt; color: #222; vertical-align: top; }
+.doc-tbl tr:nth-child(even) td { background: #FAFAFA; }
+.doc-catatan { border: 1pt solid #DDD; border-radius: 3pt; padding: 6pt 9pt; margin-bottom: 8pt; min-height: 20pt; }
+.doc-catatan-label { font-size: 7pt; text-transform: uppercase; letter-spacing: 0.5px; color: #888; margin-bottom: 3pt; }
+.doc-catatan-val { font-size: 8.5pt; color: #333; line-height: 1.5; white-space: pre-line; }
+.doc-footer { display: grid; gap: 8pt; margin-top: 10pt; }
+.doc-ttd { text-align: center; }
+.doc-ttd-label { font-size: 8pt; color: #555; margin-bottom: 26pt; }
+.doc-ttd-line { border-top: 1pt solid #999; padding-top: 4pt; font-size: 8pt; color: #777; }
+
+/* PO specific */
+.po-print-area { width: 190mm; padding: 0; background: white; margin: 0 auto; }
+.po-kop { border-bottom: 3pt solid #111; padding-bottom: 10pt; margin-bottom: 14pt; display: flex; justify-content: space-between; align-items: flex-start; }
+.po-title { font-size: 20pt; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; text-align: right; }
+.po-urgent { display: inline-block; background: #EF4444; color: white; font-size: 8pt; font-weight: 700; padding: 2pt 8pt; border-radius: 3pt; text-transform: uppercase; letter-spacing: 1px; margin-top: 4pt; }
+.po-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 16pt; margin-bottom: 14pt; padding: 10pt 0; border-bottom: 1pt solid #EEE; }
+.po-party-label { font-size: 7pt; text-transform: uppercase; letter-spacing: 0.8px; color: #888; margin-bottom: 4pt; }
+.po-party-name { font-size: 12pt; font-weight: 700; color: #111; }
+.po-party-detail { font-size: 8.5pt; color: #555; line-height: 1.6; white-space: pre-line; }
+.po-meta-row { display: flex; gap: 20pt; flex-wrap: wrap; margin-bottom: 14pt; padding: 8pt 10pt; background: #F8F9FA; border-radius: 4pt; border: 1pt solid #EEE; }
+.po-tbl { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 12pt; }
+.po-tbl th { background: #1A1A1A; color: white; padding: 6pt 8pt; text-align: left; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.5px; }
+.po-tbl th:last-child, .po-tbl td:last-child { text-align: right; }
+.po-tbl td { padding: 7pt 8pt; border-bottom: 1pt solid #EEE; color: #222; vertical-align: top; }
+.po-tbl tr:nth-child(even) td { background: #FAFAFA; }
+.po-summary { display: flex; justify-content: flex-end; margin-bottom: 14pt; }
+.po-summary-table { width: 240pt; font-size: 9pt; }
+.po-summary-row { display: flex; justify-content: space-between; padding: 3pt 0; border-bottom: 1pt solid #EEE; color: #555; }
+.po-summary-total { display: flex; justify-content: space-between; padding: 6pt 0; font-size: 12pt; font-weight: 800; color: #111; border-top: 2pt solid #111; margin-top: 2pt; }
+
+/* PRINT: hide app UI via visibility trick, show only the active doc */
+@media print {
+  body { background: white !important; margin: 0 !important; }
+  body * { visibility: hidden !important; }
+  .doc-print-root, .doc-print-root * { visibility: visible !important; }
+  .doc-print-root {
+    position: absolute !important;
+    left: 0; top: 0;
+    width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+  @page { size: A4 portrait; margin: 0; }
+}

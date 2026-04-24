@@ -4,6 +4,7 @@ import {
   Package2, LogOut, User, Calculator, FileText, Brain,
   LayoutDashboard, Mail, Package, Timer, Menu, X, Zap,
   Scissors, Printer, Database, Layers, Cpu, ShieldCheck, CreditCard, Store,
+  BarChart3, Truck, ClipboardList,
 } from 'lucide-react';
 import { logout } from '../lib/supabase';
 import { PLANS } from '../lib/plans';
@@ -19,7 +20,10 @@ const NAV_GROUPS = [
     label: 'OPERASIONAL',
     items: [
       { id: 'calculator',    Icon: Calculator, label: 'Kalkulator HPP'  },
+      { id: 'laporan',       Icon: BarChart3,  label: 'Laporan Keuangan', badge: 'Pro', badgeColor: 'blue' },
       { id: 'invoice',       Icon: FileText,   label: 'Invoice'         },
+      { id: 'suratJalan',    Icon: Truck,      label: 'Surat Jalan'     },
+      { id: 'poSupplier',    Icon: ClipboardList, label: 'PO Supplier'  },
       { id: 'quotation',     Icon: Timer,      label: 'Quotation'       },
       { id: 'tracking',      Icon: Package,    label: 'Tracking Order'  },
       { id: 'tokoSaya',      Icon: Store,      label: 'Toko Saya'       },

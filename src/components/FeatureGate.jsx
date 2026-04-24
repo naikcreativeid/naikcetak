@@ -32,6 +32,12 @@ const FEATURE_DESCRIPTIONS = {
     benefits: ['Halaman publik dengan URL unik toko Anda', 'Klien request order langsung tanpa chat dulu', 'Order masuk rapi ke dashboard'],
     impact: 'Buka kanal order baru 24/7 untuk percetakan Anda',
   },
+  laporanKeuangan: {
+    emoji: '📊',
+    headline: 'Laporan Keuangan Otomatis',
+    benefits: ['Omzet, HPP, laba kotor dalam 1 halaman', 'Grafik tren bulanan otomatis', 'Status invoice lunas/pending/overdue'],
+    impact: 'Tahu kondisi bisnis tanpa buka Excel',
+  },
   exportPDF: {
     emoji: '📄',
     headline: 'Export PDF',

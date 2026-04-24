@@ -40,6 +40,9 @@ import UserSubscription from './components/UserSubscription';
 import StorePublicPage from './components/StorePublicPage';
 import StorefrontManager, { LockedPreview } from './components/StorefrontManager';
 import AccountProfile from './components/AccountProfile';
+import LaporanKeuangan from './components/LaporanKeuangan';
+import SuratJalan from './components/SuratJalan';
+import POSupplier from './components/POSupplier';
 import SiteSettingsPanel from './components/SiteSettingsPanel';
 
 const INIT_IDENTITY = { productName: '', dimLength: '', dimWidth: '', dimHeight: '', gsm: '' };
@@ -393,10 +396,18 @@ export default function App() {
           <UserSubscription user={user} onUpgradeClick={() => setShowUpgrade(true)} />
         ) : activePage === 'dashboard' ? (
           <Dashboard user={user} onNavigate={setActivePage} />
+        ) : activePage === 'laporan' ? (
+          <FeatureGate feature="laporanKeuangan">
+            <LaporanKeuangan user={user} onNavigate={setActivePage} />
+          </FeatureGate>
         ) : activePage === 'invoice' ? (
           <FeatureGate feature="invoice">
             <InvoiceGenerator user={user} onLoginRequest={() => setShowAuth(true)} />
           </FeatureGate>
+        ) : activePage === 'suratJalan' ? (
+          <SuratJalan />
+        ) : activePage === 'poSupplier' ? (
+          <POSupplier />
         ) : activePage === 'brief' ? (
           <FeatureGate feature="groqAI">
             <AIBriefAnalyzer />
