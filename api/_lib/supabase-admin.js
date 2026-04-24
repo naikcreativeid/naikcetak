@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { getRequiredEnv } from './config.js';
+import { getEnv, getRequiredEnv } from './config.js';
 
 function createSupabaseClient(key) {
   const url = getRequiredEnv('SUPABASE_URL', ['VITE_SUPABASE_URL']);
@@ -14,6 +14,32 @@ function createSupabaseClient(key) {
 
 export function getSupabaseAdmin() {
   return createSupabaseClient(getRequiredEnv('SUPABASE_SERVICE_ROLE_KEY'));
+}
+
+export function getSupabaseAdminIfAvailable() {
+  const serviceRoleKey = getEnv('SUPABASE_SERVICE_ROLE_KEY');
+  return serviceRoleKey ? createSupabaseClient(serviceRoleKey) : null;
+}
+
+export function getSupabaseUserClient(accessToken) {
+  if (!accessToken) {
+    throw new Error('Missing bearer token');
+  }
+
+  const url = getRequiredEnv('SUPABASE_URL', ['VITE_SUPABASE_URL']);
+  const anonKey = getRequiredEnv('SUPABASE_ANON_KEY', ['VITE_SUPABASE_ANON_KEY']);
+
+  return createClient(url, anonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  });
 }
 
 export async function authenticateRequestUser(req) {

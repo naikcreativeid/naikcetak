@@ -1,5 +1,9 @@
 import { allowMethods, sendJson } from './_lib/http.js';
-import { authenticateRequestUser, getSupabaseAdmin } from './_lib/supabase-admin.js';
+import {
+  authenticateRequestUser,
+  getSupabaseAdminIfAvailable,
+  getSupabaseUserClient,
+} from './_lib/supabase-admin.js';
 import { buildOrderId, getPlanAmount } from './_lib/config.js';
 import { getMidtransSnap } from './_lib/midtrans.js';
 
@@ -20,6 +24,8 @@ export default async function handler(req, res) {
   if (!allowMethods(req, res, ['POST'])) return;
 
   try {
+    const header = req.headers.authorization ?? req.headers.Authorization;
+    const accessToken = header?.startsWith('Bearer ') ? header.slice(7).trim() : null;
     const user = await authenticateRequestUser(req);
     const {
       planId = 'pro',
@@ -32,9 +38,9 @@ export default async function handler(req, res) {
     const customerDetails = normalizeCustomerDetails(user, customerDetailsInput);
     const orderId = buildOrderId(user.id);
     const paymentMethod = 'midtrans_snap';
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabaseUser = getSupabaseUserClient(accessToken);
 
-    const { data: requestRow, error: insertError } = await supabaseAdmin
+    const { data: requestRow, error: insertError } = await supabaseUser
       .from('upgrade_requests')
       .insert({
         user_id: user.id,
@@ -74,7 +80,7 @@ export default async function handler(req, res) {
       ],
     });
 
-    const { error: requestUpdateError } = await supabaseAdmin
+    const { error: requestUpdateError } = await supabaseUser
       .from('upgrade_requests')
       .update({
         snap_token: snapResponse.token,
@@ -86,18 +92,27 @@ export default async function handler(req, res) {
       throw new Error(`Failed to save snap token: ${requestUpdateError.message}`);
     }
 
-    await supabaseAdmin
-      .from('user_profiles')
-      .update({
-        plan_status: 'pending_payment',
-        payment_amount: grossAmount,
-        payment_method: paymentMethod,
-        payment_notes: paymentNotes || 'Menunggu pembayaran via Midtrans Snap',
-        upgrade_requested_at: new Date().toISOString(),
-        upgrade_requested_plan: planId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', user.id);
+    const supabaseAdmin = getSupabaseAdminIfAvailable();
+    if (supabaseAdmin) {
+      const { error: profileUpdateError } = await supabaseAdmin
+        .from('user_profiles')
+        .update({
+          plan_status: 'pending_payment',
+          payment_amount: grossAmount,
+          payment_method: paymentMethod,
+          payment_notes: paymentNotes || 'Menunggu pembayaran via Midtrans Snap',
+          upgrade_requested_at: new Date().toISOString(),
+          upgrade_requested_plan: planId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (profileUpdateError) {
+        console.warn('[midtrans-token] failed to mark profile pending_payment:', profileUpdateError.message);
+      }
+    } else {
+      console.warn('[midtrans-token] SUPABASE_SERVICE_ROLE_KEY not set; skipping pending_payment profile update.');
+    }
 
     sendJson(res, 200, {
       token: snapResponse.token,
