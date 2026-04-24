@@ -71,6 +71,7 @@ export default function App() {
   const [pathname, setPathname]         = useState(window.location.pathname);
   const [userProfile, setUserProfile]   = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [profileRedirecting, setProfileRedirecting] = useState(false);
   const [siteSettings, setSiteSettings] = useState(null);
 
   const planHook = usePlan(user);
@@ -92,6 +93,36 @@ export default function App() {
       setProfileLoading(false);
     }
   }, [user]);
+
+  const handleProfileSaved = useCallback(async (savedProfile) => {
+    setProfileRedirecting(true);
+
+    if (savedProfile) {
+      setUserProfile((prev) => ({ ...prev, ...savedProfile }));
+    }
+
+    try {
+      await Promise.all([
+        refreshUserProfile(),
+        planHook.refreshPlan(),
+      ]);
+    } catch (err) {
+      console.error('Profile refresh after save error:', err);
+    }
+
+    await new Promise((resolve) => {
+      window.setTimeout(resolve, 700);
+    });
+
+    setActivePage('dashboard');
+    setProfileRedirecting(false);
+  }, [refreshUserProfile, planHook]);
+
+  useEffect(() => {
+    if (activePage !== 'profil' && profileRedirecting) {
+      setProfileRedirecting(false);
+    }
+  }, [activePage, profileRedirecting]);
 
   // ── Hash-based public tracking route ────────────────────────────────────
   useEffect(() => {
@@ -384,8 +415,9 @@ export default function App() {
             profile={userProfile}
             plan={planHook.plan}
             enforceWhatsapp={starterNeedsWhatsapp}
+            redirecting={profileRedirecting}
             onBack={() => setActivePage('dashboard')}
-            onSaved={() => { refreshUserProfile(); planHook.refreshPlan(); }}
+            onSaved={handleProfileSaved}
           />
         ) : activePage === 'tokoSaya' ? (
           <FeatureGate feature="publicStore" fallback={<LockedPreview />}>
