@@ -20,6 +20,18 @@ const FEATURE_DESCRIPTIONS = {
     benefits: ['Penawaran harga rapi & terstruktur', 'PDF siap kirim ke klien', 'Konversi lebih banyak order'],
     impact: 'Tingkatkan closing rate penawaran Anda',
   },
+  suratJalan: {
+    emoji: '🚚',
+    headline: 'Surat Jalan Digital',
+    benefits: ['Buat surat jalan profesional dalam 1 menit', 'Export PDF siap kirim ke kurir/klien', 'Arsip pengiriman rapi & terlacak'],
+    impact: 'Pengiriman lebih rapi & profesional',
+  },
+  poSupplier: {
+    emoji: '📦',
+    headline: 'PO Supplier Otomatis',
+    benefits: ['Buat purchase order ke supplier instan', 'Format rapi siap kirim via WA/email', 'Arsip pemesanan bahan baku terpusat'],
+    impact: 'Pesan bahan baku tanpa ribet',
+  },
   trackingOrder: {
     emoji: '📦',
     headline: 'Tracking Order Publik',

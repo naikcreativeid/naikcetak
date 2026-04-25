@@ -405,9 +405,13 @@ export default function App() {
             <InvoiceGenerator user={user} onLoginRequest={() => setShowAuth(true)} />
           </FeatureGate>
         ) : activePage === 'suratJalan' ? (
-          <SuratJalan />
+          <FeatureGate feature="suratJalan">
+            <SuratJalan />
+          </FeatureGate>
         ) : activePage === 'poSupplier' ? (
-          <POSupplier />
+          <FeatureGate feature="poSupplier">
+            <POSupplier />
+          </FeatureGate>
         ) : activePage === 'brief' ? (
           <FeatureGate feature="groqAI">
             <AIBriefAnalyzer />
