@@ -251,8 +251,10 @@ export const FOOTER_LINKS = [
   {
     title: 'Legal',
     items: [
-      { label: 'Syarat Penggunaan', href: APP_URL },
-      { label: 'Kebijakan Privasi', href: APP_URL },
+      { label: 'Syarat & Ketentuan', href: '/terms' },
+      { label: 'Kebijakan Privasi',  href: '/privacy' },
+      { label: 'Kebijakan Refund',    href: '/refund' },
+      { label: 'Hubungi Kami',        href: '/contact' },
     ],
   },
 ];

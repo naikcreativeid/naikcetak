@@ -45,6 +45,7 @@ import SuratJalan from './components/SuratJalan';
 import POSupplier from './components/POSupplier';
 import SiteSettingsPanel from './components/SiteSettingsPanel';
 import { captureReferralFromUrl, applyStoredReferral } from './lib/referral';
+import LegalPage from './components/LegalPage';
 
 const INIT_IDENTITY = { productName: '', dimLength: '', dimWidth: '', dimHeight: '', gsm: '' };
 const INIT_SPECS    = { planoLength: 0, planoWidth: 0, flatLength: 0, flatWidth: 0, grip: 2, wasteRate: 5, colorCount: 4 };
@@ -323,8 +324,13 @@ export default function App() {
 
   const hostname = window.location.hostname;
   const trimmedPath = pathname.replace(/^\/+|\/+$/g, '');
-  const reservedRoots = ['login', 'reset-password', 'track', 'quotation'];
+  const legalRoots = ['terms', 'privacy', 'refund', 'contact'];
+  const reservedRoots = ['login', 'reset-password', 'track', 'quotation', ...legalRoots];
   const looksLikeStorePath = trimmedPath && !trimmedPath.includes('/') && !reservedRoots.includes(trimmedPath);
+
+  if (legalRoots.includes(trimmedPath)) {
+    return <LegalPage />;
+  }
 
   if (looksLikeStorePath) {
     return <StorePublicPage slug={trimmedPath} />;
