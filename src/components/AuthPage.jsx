@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package2, Mail, Lock, Eye, EyeOff, User, Scissors, Printer, ArrowLeft } from 'lucide-react';
+import { Package2, Mail, Lock, Eye, EyeOff, User, Scissors, Printer, ArrowLeft, Gift } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { handleAuthError, AUTH_CODE } from '../lib/authErrors';
+import { getStoredReferralCode } from '../lib/referral';
 
 // ── Google icon SVG ───────────────────────────────────────────────────────────
 function GoogleIcon() {
@@ -270,6 +271,7 @@ function RegisterForm({ onSwitch, onSuccess }) {
   const [agree,    setAgree]    = useState(false);
   const [loading,  setLoading]  = useState(false);
   const [errors,   setErrors]   = useState({});
+  const [referralCode] = useState(() => getStoredReferralCode());
 
   const strength = getStrength(password);
   const confirmOk = confirm && confirm === password;
@@ -339,6 +341,15 @@ function RegisterForm({ onSwitch, onSuccess }) {
     <motion.div key="daftar" initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -14 }} transition={{ duration: 0.2 }}>
       <h2 className="text-2xl font-bold text-zinc-900 mb-1">Buat Akun Gratis</h2>
       <p className="text-zinc-500 text-sm mb-6">Mulai gratis, tidak perlu kartu kredit.</p>
+
+      {referralCode && (
+        <div className="mb-5 flex items-center gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5">
+          <Gift size={15} className="text-emerald-600 shrink-0" />
+          <p className="text-xs text-emerald-800">
+            Mendaftar via referral <span className="font-bold">{referralCode}</span>
+          </p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field label="Nama Lengkap" error={errors.name}>

@@ -44,6 +44,7 @@ import LaporanKeuangan from './components/LaporanKeuangan';
 import SuratJalan from './components/SuratJalan';
 import POSupplier from './components/POSupplier';
 import SiteSettingsPanel from './components/SiteSettingsPanel';
+import { captureReferralFromUrl, applyStoredReferral } from './lib/referral';
 
 const INIT_IDENTITY = { productName: '', dimLength: '', dimWidth: '', dimHeight: '', gsm: '' };
 const INIT_SPECS    = { planoLength: 0, planoWidth: 0, flatLength: 0, flatWidth: 0, grip: 2, wasteRate: 5, colorCount: 4 };
@@ -140,12 +141,23 @@ export default function App() {
     return () => window.removeEventListener('popstate', handler);
   }, []);
 
+  // ── Capture referral code dari URL (?ref=NCxxxxxx) ───────────────────────
+  useEffect(() => {
+    captureReferralFromUrl();
+  }, []);
+
   // ── Auth listener — INITIAL_SESSION marks when auth is determined ────────
   useEffect(() => {
     if (!supabase) { setAuthReady(true); return; }
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       if (event === 'INITIAL_SESSION') setAuthReady(true);
+
+      // Apply stored referral once user is authenticated. RPC idempotent —
+      // jika sudah pernah linked, di-no-op dan kode dihapus dari storage.
+      if (session?.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+        applyStoredReferral();
+      }
     });
     return () => subscription.unsubscribe();
   }, []);

@@ -145,10 +145,30 @@ export default async function handler(req, res) {
 
       if (profileError) throw new Error(profileError.message);
       await applyPaidUpgrade(supabaseAdmin, requestRow, userProfile, payload);
+
+      // Catat komisi referral. Idempotent — return reason 'no_referrer' / 'already_recorded'
+      // tidak menggagalkan webhook supaya pembayaran user tidak terdampak.
+      const { error: commissionError } = await supabaseAdmin.rpc('record_commission', {
+        p_upgrade_request_id: requestRow.id,
+      });
+      if (commissionError) {
+        console.warn('[midtrans-webhook] record_commission failed:', commissionError.message);
+      }
     }
 
     if (!isPaid && ['cancelled', 'rejected'].includes(nextStatus)) {
       await restorePendingProfile(supabaseAdmin, requestRow);
+
+      // Jika sebelumnya sudah paid (refund/chargeback late), clawback komisi.
+      if (alreadyPaid) {
+        const { error: clawbackError } = await supabaseAdmin.rpc('clawback_commission', {
+          p_upgrade_request_id: requestRow.id,
+          p_reason: `Midtrans status changed to ${payload.transaction_status}`,
+        });
+        if (clawbackError) {
+          console.warn('[midtrans-webhook] clawback_commission failed:', clawbackError.message);
+        }
+      }
     }
 
     sendJson(res, 200, { received: true });
