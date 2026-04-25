@@ -21,23 +21,25 @@ function BrowserFrame({ children, className = '' }) {
 
 export function HeroDashboardMockup({ metrics = [] }) {
   return (
-    <BrowserFrame className="relative mx-auto max-w-[620px]">
-      <div className="grid gap-0 bg-[var(--bg-gray)] lg:grid-cols-[168px_minmax(0,1fr)]">
-        <aside className="border-r border-[var(--border)] bg-slate-950 px-4 py-5 text-white">
-          <div className="mb-6 flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 p-1.5">
+    <BrowserFrame className="relative mx-auto max-w-[760px]">
+      <div className="grid gap-0 bg-[var(--bg-gray)] md:grid-cols-[152px_minmax(0,1fr)]">
+        <aside className="border-b border-[var(--border)] bg-slate-950 px-4 py-4 text-white md:border-b-0 md:border-r md:py-5">
+          <div className="mb-4 flex items-center gap-2 md:mb-5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/10 p-1.5">
               <NaikCetakLogoMark className="h-full w-full" color="#FFFFFF" />
             </div>
             <div>
-              <p className="text-sm font-semibold">NaikCetak</p>
-              <p className="text-xs text-slate-400">Dashboard Pro</p>
+              <p className="text-[15px] font-semibold leading-tight">NaikCetak</p>
+              <p className="text-[11px] text-slate-400">Dashboard Pro</p>
             </div>
           </div>
-          <div className="space-y-2 text-sm">
+          <div className="grid grid-cols-2 gap-2 text-[13px] sm:grid-cols-3 md:grid-cols-1">
             {['Dashboard', 'Kalkulator HPP', 'Invoice', 'Tracking Order', 'Toko Saya'].map((item, index) => (
               <div
                 key={item}
-                className={`rounded-2xl px-3 py-2 ${index === 0 ? 'bg-white text-slate-950' : 'bg-white/5 text-slate-300'}`}
+                className={`rounded-2xl px-3 py-2.5 leading-tight ${
+                  index === 0 ? 'bg-white text-slate-950' : 'bg-white/5 text-slate-300'
+                }`}
               >
                 {item}
               </div>
@@ -45,27 +47,27 @@ export function HeroDashboardMockup({ metrics = [] }) {
           </div>
         </aside>
 
-        <div className="space-y-5 p-5">
-          <div className="grid gap-4 md:grid-cols-3">
+        <div className="space-y-4 p-4 md:p-5">
+          <div className="grid gap-3 sm:grid-cols-3">
             {metrics.map(({ icon: Icon, label, value }) => (
-              <div key={label} className="rounded-3xl bg-white p-4 shadow-[var(--shadow-sm)]">
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--brand-blue-light)] text-[var(--brand-blue)]">
-                  <Icon size={18} />
+              <div key={label} className="min-w-0 rounded-[26px] bg-white p-4 shadow-[var(--shadow-sm)]">
+                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-2xl bg-[var(--brand-blue-light)] text-[var(--brand-blue)]">
+                  <Icon size={16} />
                 </div>
-                <p className="text-sm text-slate-500">{label}</p>
-                <p className="mt-1 text-xl font-bold text-slate-900">{value}</p>
+                <p className="text-[13px] leading-5 text-slate-500">{label}</p>
+                <p className="mt-1 break-words text-[17px] font-bold leading-7 text-slate-900 sm:text-[18px]">{value}</p>
               </div>
             ))}
           </div>
 
-          <div className="grid gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-            <div className="rounded-3xl bg-white p-5 shadow-[var(--shadow-sm)]">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">Perhitungan HPP Hari Ini</p>
-                  <p className="text-sm text-slate-500">Pesanan dus frozen food 10.000 pcs</p>
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)]">
+            <div className="rounded-[28px] bg-white p-4 shadow-[var(--shadow-sm)] md:p-5">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-[15px] font-semibold leading-6 text-slate-900">Perhitungan HPP Hari Ini</p>
+                  <p className="text-[13px] leading-6 text-slate-500">Pesanan dus frozen food 10.000 pcs</p>
                 </div>
-                <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600">
+                <div className="inline-flex w-fit rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-600">
                   Margin Aman
                 </div>
               </div>
@@ -75,33 +77,33 @@ export function HeroDashboardMockup({ metrics = [] }) {
                   ['Finishing', 'Rp 2.150.000'],
                   ['Harga Jual', 'Rp 12.500.000'],
                 ].map(([label, value]) => (
-                  <div key={label} className="rounded-2xl bg-slate-50 p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{label}</p>
-                    <p className="mt-2 text-lg font-bold text-slate-900">{value}</p>
+                  <div key={label} className="min-w-0 rounded-2xl bg-slate-50 p-3 sm:p-3.5">
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{label}</p>
+                    <p className="mt-2 break-words text-[15px] font-bold leading-6 text-slate-900 sm:text-base">{value}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-3xl bg-white p-5 shadow-[var(--shadow-sm)]">
-              <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
-                  <PackageCheck size={22} />
+            <div className="rounded-[28px] bg-white p-4 shadow-[var(--shadow-sm)] md:p-5">
+              <div className="mb-4 flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
+                  <PackageCheck size={20} />
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">Tracking Order</p>
-                  <p className="text-sm text-slate-500">Box Hampers Lebaran</p>
+                <div className="min-w-0">
+                  <p className="text-[15px] font-semibold leading-6 text-slate-900">Tracking Order</p>
+                  <p className="text-[13px] leading-6 text-slate-500">Box Hampers Lebaran</p>
                 </div>
               </div>
               <div className="mb-3 h-3 overflow-hidden rounded-full bg-slate-100">
                 <div className="h-full w-[72%] rounded-full bg-gradient-to-r from-[var(--brand-blue)] to-violet-500" />
               </div>
-              <div className="flex justify-between text-xs font-semibold text-slate-500">
+              <div className="grid grid-cols-3 gap-1 text-center text-[10px] font-semibold text-slate-500 sm:gap-2 sm:text-[11px]">
                 <span>Desain</span>
                 <span>Cetak</span>
                 <span>Finishing</span>
               </div>
-              <div className="mt-4 rounded-2xl bg-slate-950 px-4 py-3 text-sm text-white">
+              <div className="mt-4 rounded-2xl bg-slate-950 px-4 py-3 text-[13px] leading-6 text-white">
                 Update terakhir: Quality check selesai, siap kirim besok 10:00
               </div>
             </div>
