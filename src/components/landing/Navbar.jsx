@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Menu, Printer, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { LOGIN_URL, NAV_LINKS, REGISTER_URL } from './constants';
+import BrandLogo from '../BrandLogo';
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -22,14 +23,12 @@ export default function Navbar() {
       }`}
     >
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 lg:px-8">
-        <a href="#top" className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--bg-dark)] text-white shadow-[var(--shadow-sm)]">
-            <Printer size={18} />
-          </div>
-          <div>
-            <p className="text-lg font-extrabold text-[var(--text-primary)]">NaikCetak</p>
-            <p className="text-xs text-[var(--text-muted)]">Untuk percetakan Indonesia</p>
-          </div>
+        <a href="#top">
+          <BrandLogo
+            markClassName="h-11 w-11 shrink-0"
+            textClassName="text-lg text-[var(--text-primary)]"
+            subtitle="Untuk percetakan Indonesia"
+          />
         </a>
 
         <div className="hidden items-center gap-8 md:flex">

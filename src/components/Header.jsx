@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { logout } from '../lib/supabase';
 import { PLANS } from '../lib/plans';
+import BrandLogo from './BrandLogo';
 
 const NAV_GROUPS = [
   {
@@ -188,12 +189,10 @@ export default function Header({ user, onLoginClick, activePage, onPageChange, p
       <aside className="hidden md:flex flex-col fixed inset-y-0 left-0 w-56 bg-white border-r border-zinc-200 z-40">
         {/* Logo */}
         <div className="px-5 h-14 flex items-center border-b border-zinc-100 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-zinc-900 rounded-xl flex items-center justify-center shrink-0">
-              <Package2 size={15} className="text-white" />
-            </div>
-            <span className="font-bold text-zinc-900 text-base tracking-tight">naikcetak</span>
-          </div>
+          <BrandLogo
+            markClassName="h-8 w-8 shrink-0"
+            textClassName="text-base text-zinc-900"
+          />
         </div>
 
         <NavItems activePage={activePage} onNav={handleNav} isAdmin={isAdmin} />
@@ -207,12 +206,7 @@ export default function Header({ user, onLoginClick, activePage, onPageChange, p
 
       {/* ── Mobile top bar ────────────────────────────────────────────────── */}
       <div className="md:hidden fixed top-0 inset-x-0 h-14 bg-white border-b border-zinc-200 z-40 flex items-center justify-between px-4">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-zinc-900 rounded-lg flex items-center justify-center">
-            <Package2 size={13} className="text-white" />
-          </div>
-          <span className="font-bold text-zinc-900 text-sm tracking-tight">naikcetak</span>
-        </div>
+        <BrandLogo markClassName="h-7 w-7 shrink-0" textClassName="text-sm text-zinc-900" />
         <div className="flex items-center gap-2">
           {user && (
             <button
@@ -253,12 +247,10 @@ export default function Header({ user, onLoginClick, activePage, onPageChange, p
             >
               {/* Drawer logo */}
               <div className="px-5 h-14 flex items-center border-b border-zinc-100 shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 bg-zinc-900 rounded-xl flex items-center justify-center shrink-0">
-                    <Package2 size={15} className="text-white" />
-                  </div>
-                  <span className="font-bold text-zinc-900 text-base tracking-tight">naikcetak</span>
-                </div>
+                <BrandLogo
+                  markClassName="h-8 w-8 shrink-0"
+                  textClassName="text-base text-zinc-900"
+                />
               </div>
 
               <NavItems activePage={activePage} onNav={handleNav} isAdmin={isAdmin} />

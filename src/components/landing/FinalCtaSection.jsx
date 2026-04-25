@@ -1,20 +1,34 @@
-import { FINAL_CTA_ACTIONS } from './constants';
+import { CheckCircle2 } from 'lucide-react';
+import { FINAL_CTA_ACTIONS, FINAL_CTA_BULLETS } from './constants';
+import { NaikCetakLogoMark } from '../BrandLogo';
 
 export default function FinalCtaSection() {
   return (
     <section className="px-4 py-18 lg:px-8 lg:py-24">
       <div className="mx-auto max-w-7xl">
         <div className="overflow-hidden rounded-[36px] bg-[linear-gradient(135deg,_var(--brand-blue-dark)_0%,_var(--bg-dark)_100%)] px-5 py-12 text-center text-white shadow-[var(--shadow-lg)] sm:px-6 sm:py-14 lg:rounded-[40px] lg:px-12">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/10 text-4xl backdrop-blur">
-            🖨️
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/10 backdrop-blur">
+            <NaikCetakLogoMark className="h-11 w-11" color="#FFFFFF" />
           </div>
           <h2 className="mx-auto mt-6 max-w-3xl text-[clamp(2rem,5vw,3rem)] font-display font-bold leading-[1.14] tracking-[-0.02em] text-white sm:leading-[1.08]">
-            Sudah Siap Hitung Lebih Cepat & Akurat?
+            Sudah siap bikin operasional percetakan terasa lebih modern?
           </h2>
           <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-blue-100 sm:text-lg">
-            Bergabung dengan 6.971+ percetakan Indonesia yang sudah pakai NaikCetak. Coba gratis hari ini,
-            tanpa kartu kredit, tanpa komitmen.
+            Bergabung dengan percetakan yang ingin menghitung lebih cepat, bekerja lebih rapi,
+            dan terlihat lebih profesional di mata klien. Mulai gratis hari ini, lalu upgrade saat
+            Anda benar-benar merasa manfaatnya.
           </p>
+
+          <div className="mx-auto mt-8 grid max-w-3xl gap-3 text-left sm:grid-cols-3">
+            {FINAL_CTA_BULLETS.map((item) => (
+              <div key={item} className="rounded-2xl border border-white/15 bg-white/10 px-4 py-4 backdrop-blur">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-emerald-300" />
+                  <p className="text-sm leading-6 text-blue-50">{item}</p>
+                </div>
+              </div>
+            ))}
+          </div>
 
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             {FINAL_CTA_ACTIONS.map((action) => {

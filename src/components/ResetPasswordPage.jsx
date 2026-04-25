@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Package2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { supabase, resetPasswordByEmail } from '../lib/supabase';
+import BrandLogo from './BrandLogo';
 
 function Spinner() {
   return <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />;
@@ -202,11 +203,11 @@ export default function ResetPasswordPage({ hasSession, onLogin }) {
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8">
 
-        <div className="flex items-center gap-2 mb-8">
-          <div className="w-8 h-8 bg-zinc-900 rounded-xl flex items-center justify-center">
-            <Package2 size={15} className="text-white" />
-          </div>
-          <span className="font-bold text-zinc-900">naikcetak</span>
+        <div className="mb-8">
+          <BrandLogo
+            markClassName="h-8 w-8 shrink-0"
+            textClassName="text-base text-zinc-900"
+          />
         </div>
 
         {view === 'check-email' && (

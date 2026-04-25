@@ -4,6 +4,7 @@ import HeroSection from './landing/HeroSection';
 import ProblemSection from './landing/ProblemSection';
 import FeaturesSection from './landing/FeaturesSection';
 import DemoSection from './landing/DemoSection';
+import WorthItSection from './landing/WorthItSection';
 import ProofSection from './landing/ProofSection';
 import PricingSection from './landing/PricingSection';
 import FinalCtaSection from './landing/FinalCtaSection';
@@ -62,6 +63,7 @@ export default function LandingPage() {
         <ProblemSection />
         <FeaturesSection />
         <DemoSection />
+        <WorthItSection />
         <ProofSection />
         <PricingSection />
         <FinalCtaSection />

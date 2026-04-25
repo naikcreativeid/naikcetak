@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package2, Mail, Lock, Eye, EyeOff, User, Scissors, Printer, ArrowLeft, Gift } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Scissors, Printer, ArrowLeft, Gift } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { handleAuthError, AUTH_CODE } from '../lib/authErrors';
 import { getStoredReferralCode } from '../lib/referral';
+import BrandLogo from './BrandLogo';
 
 // ── Google icon SVG ───────────────────────────────────────────────────────────
 function GoogleIcon() {
@@ -109,11 +110,11 @@ function LeftPanel() {
   return (
     <div className="hidden md:flex flex-col w-[45%] bg-gradient-to-br from-[#1E40AF] to-[#2563EB] px-10 py-12 text-white shrink-0">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 mb-14">
-        <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
-          <Package2 size={18} className="text-white" />
-        </div>
-        <span className="font-bold text-xl tracking-tight">naikcetak</span>
+      <div className="mb-14">
+        <BrandLogo
+          markClassName="h-9 w-9 shrink-0"
+          textClassName="text-xl text-white"
+        />
       </div>
 
       <div className="flex-1">
@@ -480,11 +481,11 @@ export default function AuthPage({ defaultTab = 'masuk', onSuccess }) {
       {/* Right column */}
       <div className="flex-1 flex flex-col items-center justify-center bg-white px-6 py-10 overflow-y-auto">
         {/* Mobile logo */}
-        <div className="flex md:hidden items-center gap-2 mb-8">
-          <div className="w-8 h-8 bg-zinc-900 rounded-xl flex items-center justify-center">
-            <Package2 size={15} className="text-white" />
-          </div>
-          <span className="font-bold text-zinc-900">naikcetak</span>
+        <div className="mb-8 md:hidden">
+          <BrandLogo
+            markClassName="h-8 w-8 shrink-0"
+            textClassName="text-base text-zinc-900"
+          />
         </div>
 
         <div className="w-full max-w-[420px]">

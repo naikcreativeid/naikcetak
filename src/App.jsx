@@ -46,6 +46,7 @@ import POSupplier from './components/POSupplier';
 import SiteSettingsPanel from './components/SiteSettingsPanel';
 import { captureReferralFromUrl, applyStoredReferral } from './lib/referral';
 import LegalPage from './components/LegalPage';
+import MarketingPage from './components/MarketingPage';
 
 const INIT_IDENTITY = { productName: '', dimLength: '', dimWidth: '', dimHeight: '', gsm: '' };
 const INIT_SPECS    = { planoLength: 0, planoWidth: 0, flatLength: 0, flatWidth: 0, grip: 2, wasteRate: 5, colorCount: 4 };
@@ -325,11 +326,16 @@ export default function App() {
   const hostname = window.location.hostname;
   const trimmedPath = pathname.replace(/^\/+|\/+$/g, '');
   const legalRoots = ['terms', 'privacy', 'refund', 'contact'];
-  const reservedRoots = ['login', 'reset-password', 'track', 'quotation', ...legalRoots];
+  const marketingRoots = ['tentang', 'blog', 'karir', 'changelog', 'roadmap'];
+  const reservedRoots = ['login', 'reset-password', 'track', 'quotation', ...legalRoots, ...marketingRoots];
   const looksLikeStorePath = trimmedPath && !trimmedPath.includes('/') && !reservedRoots.includes(trimmedPath);
 
   if (legalRoots.includes(trimmedPath)) {
     return <LegalPage />;
+  }
+
+  if (marketingRoots.includes(trimmedPath)) {
+    return <MarketingPage pageKey={trimmedPath} />;
   }
 
   if (looksLikeStorePath) {

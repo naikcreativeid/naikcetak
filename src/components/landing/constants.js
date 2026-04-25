@@ -17,6 +17,8 @@ export const APP_URL = 'https://app.naikcetak.com';
 export const LOGIN_URL = `${APP_URL}/#/login`;
 export const REGISTER_URL = `${APP_URL}/#/login?tab=daftar`;
 export const WHATSAPP_URL = 'https://wa.me/6282261039601';
+export const TIKTOK_URL = 'https://www.tiktok.com/@naikcetak.app';
+export const INSTAGRAM_URL = 'https://www.instagram.com/naikcetakapp/';
 
 export const CITIES = [
   'Jakarta',
@@ -233,19 +235,19 @@ export const FOOTER_LINKS = [
   {
     title: 'Produk',
     items: [
-      { label: 'Fitur', href: '#fitur' },
-      { label: 'Harga', href: '#harga' },
-      { label: 'Changelog', href: APP_URL },
-      { label: 'Roadmap', href: APP_URL },
+      { label: 'Fitur', href: '/#fitur' },
+      { label: 'Harga', href: '/#harga' },
+      { label: 'Changelog', href: '/changelog' },
+      { label: 'Roadmap', href: '/roadmap' },
     ],
   },
   {
     title: 'Perusahaan',
     items: [
-      { label: 'Tentang', href: APP_URL },
-      { label: 'Blog', href: APP_URL },
-      { label: 'Karir', href: APP_URL },
-      { label: 'Kontak', href: 'mailto:admin@naikcetak.com' },
+      { label: 'Tentang', href: '/tentang' },
+      { label: 'Blog', href: '/blog' },
+      { label: 'Karir', href: '/karir' },
+      { label: 'Kontak', href: '/contact' },
     ],
   },
   {
@@ -274,4 +276,64 @@ export const HERO_METRICS = [
   { icon: BarChart3, label: 'HPP Rata-rata', value: 'Rp 1.250/pcs' },
   { icon: FileText, label: 'Invoice Aktif', value: '7 Pending' },
   { icon: PackageCheck, label: 'Order Tracking', value: 'Finishing 72%' },
+];
+
+export const VALUE_PILLARS = [
+  {
+    title: 'Lebih Cepat Ambil Keputusan Harga',
+    description:
+      'Hitung HPP, biaya cetak, dan potong kertas dari satu dashboard tanpa bolak-balik spreadsheet.',
+    points: [
+      'Akurasi biaya lebih terjaga',
+      'Margin lebih mudah dikendalikan',
+      'Penawaran bisa dikirim lebih cepat',
+    ],
+  },
+  {
+    title: 'Operasional Lebih Rapi dan Profesional',
+    description:
+      'Invoice, quotation, surat jalan, dan PO supplier tersedia dalam workflow yang saling melengkapi.',
+    points: [
+      'Dokumen lebih konsisten',
+      'Tim tidak kerja dobel',
+      'Follow up order lebih jelas',
+    ],
+  },
+  {
+    title: 'Klien Lebih Percaya, Tim Lebih Ringan',
+    description:
+      'Tracking order publik dan storefront membantu klien melihat progres dan mengenal layanan Anda tanpa chat berulang.',
+    points: [
+      'Kurangi pertanyaan status via WhatsApp',
+      'Toko online lebih siap dipresentasikan',
+      'Proses penjualan terasa lebih modern',
+    ],
+  },
+];
+
+export const WORKFLOW_STEPS = [
+  {
+    step: '01',
+    title: 'Hitung biaya dan margin dengan cepat',
+    description:
+      'Mulai dari kalkulator HPP, biaya cetak, dan potong kertas untuk memastikan harga jual tetap kompetitif tanpa bikin Anda rugi.',
+  },
+  {
+    step: '02',
+    title: 'Kirim penawaran dan dokumen yang rapi',
+    description:
+      'Lanjutkan ke quotation, invoice, surat jalan, dan PO supplier supaya seluruh alur operasional terasa lebih profesional di mata klien dan tim.',
+  },
+  {
+    step: '03',
+    title: 'Pantau order dan buka peluang order baru',
+    description:
+      'Gunakan tracking order publik dan storefront percetakan agar klien lebih tenang, tim lebih fokus, dan calon order baru lebih mudah masuk.',
+  },
+];
+
+export const FINAL_CTA_BULLETS = [
+  'Mulai gratis tanpa kartu kredit',
+  'Upgrade hanya saat bisnis Anda sudah siap',
+  'Worth it untuk owner yang ingin kerja lebih cepat dan lebih rapi',
 ];

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, FileText, Mail, Package2, RefreshCw, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, FileText, Mail, RefreshCw, ShieldCheck } from 'lucide-react';
+import BrandLogo from './BrandLogo';
 
 const SECTIONS = [
   { id: 'terms', label: 'Syarat & Ketentuan', icon: FileText },
@@ -504,10 +505,10 @@ export default function LegalPage() {
       <header className="sticky top-0 z-30 border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
           <a href="/" className="group flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900">
-              <Package2 size={17} className="text-white" />
-            </div>
-            <span className="font-extrabold text-zinc-900">{MERCHANT.name}</span>
+            <BrandLogo
+              markClassName="h-9 w-9 shrink-0"
+              textClassName="text-base text-zinc-900"
+            />
           </a>
           <a
             href="/"

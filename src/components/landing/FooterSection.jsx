@@ -1,10 +1,10 @@
-import { Instagram, Linkedin, Printer, Youtube } from 'lucide-react';
-import { APP_URL, FOOTER_LINKS } from './constants';
+import { Instagram, Music4 } from 'lucide-react';
+import { FOOTER_LINKS, INSTAGRAM_URL, TIKTOK_URL } from './constants';
+import BrandLogo from '../BrandLogo';
 
 const socials = [
-  { label: 'Instagram', href: APP_URL, icon: Instagram },
-  { label: 'LinkedIn', href: APP_URL, icon: Linkedin },
-  { label: 'YouTube', href: APP_URL, icon: Youtube },
+  { label: 'TikTok', href: TIKTOK_URL, icon: Music4, handle: '@naikcetak.app' },
+  { label: 'Instagram', href: INSTAGRAM_URL, icon: Instagram, handle: '@naikcetakapp' },
 ];
 
 export default function FooterSection() {
@@ -13,29 +13,33 @@ export default function FooterSection() {
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-10 lg:grid-cols-[1.2fr_1fr_1fr_1fr]">
           <div>
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--bg-dark)] text-white">
-                <Printer size={20} />
-              </div>
-              <div>
-                <p className="text-lg font-extrabold text-[var(--text-primary)]">NaikCetak</p>
-                <p className="text-sm text-[var(--text-secondary)]">Naik level, jangan naik risiko rugi.</p>
-              </div>
-            </div>
+            <BrandLogo
+              markClassName="h-12 w-12 shrink-0"
+              textClassName="text-lg text-[var(--text-primary)]"
+              subtitle="Naik level, jangan naik risiko rugi."
+            />
             <p className="mt-5 max-w-sm leading-7 text-[var(--text-secondary)]">
               SaaS manajemen percetakan yang membantu owner hitung lebih cepat, jual lebih rapi, dan melayani klien lebih profesional.
             </p>
-            <div className="mt-6 flex gap-3">
+            <div className="mt-6 flex flex-wrap gap-3">
               {socials.map((social) => {
                 const Icon = social.icon;
                 return (
                   <a
                     key={social.label}
                     href={social.href}
-                    className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-white text-[var(--text-secondary)] transition hover:border-[var(--brand-blue)] hover:text-[var(--brand-blue)]"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-white px-4 py-3 text-[var(--text-secondary)] transition hover:border-[var(--brand-blue)] hover:text-[var(--brand-blue)]"
                     aria-label={social.label}
                   >
-                    <Icon size={18} />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--bg-gray)]">
+                      <Icon size={18} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">{social.label}</p>
+                      <p className="text-xs text-[var(--text-muted)]">{social.handle}</p>
+                    </div>
                   </a>
                 );
               })}
@@ -61,7 +65,7 @@ export default function FooterSection() {
         </div>
 
         <div className="mt-12 border-t border-[var(--border)] pt-6 text-sm text-[var(--text-secondary)]">
-          © 2026 NaikCetak. Dibuat dengan ❤️ untuk percetakan Indonesia.
+          &copy; 2026 NaikCetak. Dibuat untuk membantu percetakan Indonesia bekerja lebih rapi dan lebih untung.
         </div>
       </div>
     </footer>

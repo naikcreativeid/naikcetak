@@ -15,7 +15,7 @@ export default function DemoSection() {
           <SectionHeading
             eyebrow="Demo Produk"
             title="Lihat NaikCetak Beraksi"
-            subtitle="Software yang dirancang khusus untuk percetakan Indonesia."
+            subtitle="Setiap tab di bawah mewakili workflow yang benar-benar dipakai owner dan tim percetakan setiap hari."
           />
         </div>
 

@@ -1,4 +1,5 @@
 import { Calculator, CheckCircle2, PackageCheck, Scissors, TrendingUp } from 'lucide-react';
+import { NaikCetakLogoMark } from '../BrandLogo';
 
 function BrowserFrame({ children, className = '' }) {
   return (
@@ -24,7 +25,9 @@ export function HeroDashboardMockup({ metrics = [] }) {
       <div className="grid gap-0 bg-[var(--bg-gray)] lg:grid-cols-[168px_minmax(0,1fr)]">
         <aside className="border-r border-[var(--border)] bg-slate-950 px-4 py-5 text-white">
           <div className="mb-6 flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-lg">P</div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 p-1.5">
+              <NaikCetakLogoMark className="h-full w-full" color="#FFFFFF" />
+            </div>
             <div>
               <p className="text-sm font-semibold">NaikCetak</p>
               <p className="text-xs text-slate-400">Dashboard Pro</p>

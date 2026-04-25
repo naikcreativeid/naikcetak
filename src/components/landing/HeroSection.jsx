@@ -15,15 +15,16 @@ export default function HeroSection() {
             Software manajemen percetakan all-in-one
           </div>
           <h1 className="mt-7 font-display text-[clamp(2.2rem,6vw,4.6rem)] font-bold tracking-[-0.04em] text-[var(--text-primary)]">
-            <span className="block leading-[1.08] sm:leading-[1.02]">Hitung Biaya Cetak</span>
+            <span className="block leading-[1.08] sm:leading-[1.02]">Operasional Percetakan</span>
             <span className="mt-2 block leading-[1.08] text-[var(--brand-blue)] sm:mt-1 sm:leading-[1.02]">
-              10x Lebih Cepat
+              Lebih Cepat
             </span>
-            <span className="mt-2 block leading-[1.08] sm:mt-1 sm:leading-[1.02]">& Akurat</span>
+            <span className="mt-2 block leading-[1.08] sm:mt-1 sm:leading-[1.02]">Lebih Rapi, Lebih Meyakinkan</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-sm leading-7 text-[var(--text-secondary)] sm:text-base sm:leading-8">
-            Kalkulator Potong Kertas, Kalkulator Biaya Cetak, HPP otomatis, invoice,
-            quotation, dan AI assistant. Semua dalam satu platform untuk percetakan Indonesia.
+            Hitung HPP, biaya cetak, buat invoice dan quotation, pantau tracking order,
+            sampai tampilkan storefront percetakan Anda. Semua dalam satu platform yang dibuat
+            untuk membantu bisnis percetakan Indonesia terlihat lebih profesional dan bekerja lebih efisien.
           </p>
 
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
