@@ -4,7 +4,7 @@ import {
   Calculator, FileText, Brain, Clock, Package2,
   Timer, Package, Scissors, Printer, Database, Layers,
   Mail, RefreshCw, Trash2, Cloud, CloudOff, History, Store,
-  TrendingUp, ChevronRight,
+  TrendingUp, ChevronRight, BarChart3, Truck, ClipboardList, Cpu, Users,
 } from 'lucide-react';
 import { getUserActivity, getUserProjects, deleteActivity, isConfigured } from '../lib/supabase';
 import { loadRiwayatPotong, loadRiwayatCetak, formatRp } from '../lib/masterData';
@@ -73,10 +73,13 @@ const UTILITY_GROUPS = [
     label: 'OPERASIONAL',
     color: 'blue',
     items: [
-      { id: 'quotation', Icon: Timer,   title: 'Quotation',        tag: null, iconBg: 'bg-orange-500' },
-      { id: 'tracking',  Icon: Package, title: 'Tracking Order',   tag: null, iconBg: 'bg-teal-500'   },
-      { id: 'tokoSaya',  Icon: Store,   title: 'Toko Saya',        tag: 'Pro', iconBg: 'bg-blue-600'   },
-      { id: 'email',     Icon: Mail,    title: 'Email & Proposal', tag: null, iconBg: 'bg-indigo-500' },
+      { id: 'laporan',    Icon: BarChart3,    title: 'Laporan Keuangan', tag: 'Pro', iconBg: 'bg-blue-700'    },
+      { id: 'quotation',  Icon: Timer,        title: 'Quotation',        tag: null,  iconBg: 'bg-orange-500'  },
+      { id: 'tracking',   Icon: Package,      title: 'Tracking Order',   tag: null,  iconBg: 'bg-teal-500'    },
+      { id: 'tokoSaya',   Icon: Store,        title: 'Toko Saya',        tag: 'Pro', iconBg: 'bg-blue-600'    },
+      { id: 'email',      Icon: Mail,         title: 'Email & Proposal', tag: null,  iconBg: 'bg-indigo-500'  },
+      { id: 'suratJalan', Icon: Truck,        title: 'Surat Jalan',      tag: 'Pro', iconBg: 'bg-cyan-600'    },
+      { id: 'poSupplier', Icon: ClipboardList,title: 'PO Supplier',      tag: 'Pro', iconBg: 'bg-violet-600'  },
     ],
   },
   {
@@ -85,6 +88,14 @@ const UTILITY_GROUPS = [
     items: [
       { id: 'masterKertas',    Icon: Database, title: 'Database Kertas',   tag: null, iconBg: 'bg-zinc-500' },
       { id: 'masterFinishing', Icon: Layers,   title: 'Layanan Finishing', tag: null, iconBg: 'bg-zinc-500' },
+      { id: 'masterMesin',     Icon: Cpu,      title: 'Pengaturan Mesin',  tag: null, iconBg: 'bg-zinc-500' },
+    ],
+  },
+  {
+    label: 'PARTNER',
+    color: 'emerald',
+    items: [
+      { id: 'partner', Icon: Users, title: 'Elite Partner', tag: 'Komisi', iconBg: 'bg-emerald-600' },
     ],
   },
 ];
