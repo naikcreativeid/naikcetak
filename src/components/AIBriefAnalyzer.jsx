@@ -1,7 +1,10 @@
-import { useState, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Zap, RefreshCcw, AlertTriangle, TrendingUp, Lightbulb, HelpCircle, MessageCircle, Upload, Image as ImageIcon, X, FileText } from 'lucide-react';
+import { Brain, Zap, RefreshCcw, AlertTriangle, TrendingUp, Lightbulb, HelpCircle, MessageCircle, Upload, Image as ImageIcon, X, FileText, Download, FileImage, FileDown, Box, Ruler, Layers3 } from 'lucide-react';
+import { toPng } from 'html-to-image';
+import jsPDF from 'jspdf';
 import { analyzeBriefImage } from '../lib/gemini';
+import { getDielineMeta } from '../lib/dieline';
 
 const MODEL = 'llama-3.3-70b-versatile';
 const MAX_IMAGE_DIMENSION = 1280;
@@ -85,6 +88,28 @@ const STEPS_IMAGE = [
   'Menyusun quotation visual...',
 ];
 
+function slugify(value) {
+  return (value || 'kemasan')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60) || 'kemasan';
+}
+
+function downloadBlob(filename, blob, type = 'application/octet-stream') {
+  const url = URL.createObjectURL(blob instanceof Blob ? blob : new Blob([blob], { type }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function formatDimsForDisplay(dims) {
+  if (!dims) return '—';
+  return `${dims.length} × ${dims.width} × ${dims.height} cm`;
+}
+
 async function compressImage(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -128,14 +153,27 @@ export default function AIBriefAnalyzer() {
   const [result,  setResult]  = useState(null);
   const [error,   setError]   = useState('');
   const [step,    setStep]    = useState(0);
+  const [exporting, setExporting] = useState(null);
 
   const [imagePreview, setImagePreview] = useState(null); // data URL
   const [imageCaption, setImageCaption] = useState('');
   const fileInputRef = useRef(null);
+  const presentationRef = useRef(null);
 
   const apiKey = import.meta.env.VITE_GROQ_API_KEY;
 
   const activeSteps = mode === 'image' ? STEPS_IMAGE : STEPS;
+  const dielineMeta = useMemo(() => {
+    if (!result?.kebutuhan?.jenis_kemasan || !result?.kebutuhan?.ukuran_estimasi) return null;
+    return getDielineMeta({
+      jenis: result.kebutuhan.jenis_kemasan,
+      ukuran: result.kebutuhan.ukuran_estimasi,
+    });
+  }, [result]);
+  const dielineFileBase = useMemo(() => {
+    const business = result?.klien?.nama_bisnis || result?.kebutuhan?.jenis_kemasan || 'kemasan';
+    return `dieline-${slugify(business)}`;
+  }, [result]);
 
   async function handleImageSelect(file) {
     if (!file) return;
@@ -225,6 +263,59 @@ export default function AIBriefAnalyzer() {
       `Silakan konfirmasi untuk kami proses ya! 🎁`,
     ].join('\n');
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  }
+
+  function downloadDielineSvg() {
+    if (!dielineMeta?.ok) return;
+    downloadBlob(`${dielineFileBase}.svg`, dielineMeta.svg, 'image/svg+xml;charset=utf-8');
+  }
+
+  async function downloadPresentationPng() {
+    if (!presentationRef.current) return;
+    setExporting('png');
+    try {
+      const url = await toPng(presentationRef.current, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: '#f4f7fb',
+      });
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${dielineFileBase}-presentation.png`;
+      a.click();
+    } catch (e) {
+      setError(`Gagal export PNG: ${e.message}`);
+    } finally {
+      setExporting(null);
+    }
+  }
+
+  async function downloadPresentationPdf() {
+    if (!presentationRef.current) return;
+    setExporting('pdf');
+    try {
+      const url = await toPng(presentationRef.current, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: '#f4f7fb',
+      });
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const props = pdf.getImageProperties(url);
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 8;
+      const maxW = pageW - margin * 2;
+      const maxH = pageH - margin * 2;
+      const scale = Math.min(maxW / props.width, maxH / props.height);
+      const drawW = props.width * scale;
+      const drawH = props.height * scale;
+      pdf.addImage(url, 'PNG', margin, margin, drawW, drawH);
+      pdf.save(`${dielineFileBase}-presentation.pdf`);
+    } catch (e) {
+      setError(`Gagal export PDF: ${e.message}`);
+    } finally {
+      setExporting(null);
+    }
   }
 
   return (
@@ -398,7 +489,7 @@ export default function AIBriefAnalyzer() {
                 </button>
 
                 <p className="text-[11px] text-zinc-400 leading-relaxed">
-                  AI akan mendeteksi <strong>jenis kemasan, dimensi estimasi, material, finishing, dan warna cetak</strong> dari foto, lalu membuat quotation siap kirim ke klien.
+                  AI akan mendeteksi <strong>jenis kemasan, dimensi estimasi, material, finishing, warna cetak, dan draft dieline</strong> dari foto, lalu membuat quotation + presentasi siap kirim ke klien.
                 </p>
               </div>
             </div>
@@ -459,6 +550,137 @@ export default function AIBriefAnalyzer() {
                   <InfoRow label="Finishing" value={Array.isArray(result.kebutuhan?.finishing) ? result.kebutuhan.finishing.join(', ') : result.kebutuhan?.finishing} />
                 </div>
               </div>
+
+              <div className="card">
+                <div className="card-header">
+                  <span className="section-title">Breakdown Dieline</span>
+                  {dielineMeta?.ok ? (
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                      {dielineMeta.typeLabel}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500 border border-zinc-200">
+                      Draft manual
+                    </span>
+                  )}
+                </div>
+                <div className="p-4 space-y-4">
+                  {dielineMeta?.ok ? (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {[
+                          { label: 'Tipe', value: dielineMeta.typeLabel, Icon: Box },
+                          { label: 'Ukuran jadi', value: formatDimsForDisplay(dielineMeta.dims), Icon: Ruler },
+                          { label: 'Komponen', value: `${dielineMeta.summary?.length || 0} poin breakdown`, Icon: Layers3 },
+                        ].map(({ label, value, Icon }) => (
+                          <div key={label} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3">
+                            <div className="flex items-center gap-2 mb-2 text-zinc-500">
+                              <Icon size={13} />
+                              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">{label}</span>
+                            </div>
+                            <p className="text-xs font-semibold text-zinc-900 leading-relaxed">{value}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {dielineMeta.summary?.map((item) => (
+                          <div key={item.label} className="rounded-2xl border border-zinc-200 bg-white p-3">
+                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400 mb-1">{item.label}</p>
+                            <p className="text-sm font-semibold text-zinc-800 leading-relaxed">{item.value}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-700 mb-2">Catatan Produksi</p>
+                        <div className="space-y-1.5">
+                          {dielineMeta.assumptions?.map((note, i) => (
+                            <p key={i} className="text-xs text-amber-900 leading-relaxed">{i + 1}. {note}</p>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600 leading-relaxed">
+                      AI belum bisa membuat dieline standar otomatis untuk tipe kemasan ini. Biasanya ini terjadi jika ukuran belum terbaca jelas atau jenis kemasannya seperti pouch/flexible packaging yang butuh pola manufaktur khusus.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {dielineMeta?.ok && (
+                <div className="card overflow-hidden">
+                  <div className="card-header">
+                    <span className="section-title">Preview Presentasi Client</span>
+                    <span className="text-[10px] font-bold text-zinc-400">Siap download</span>
+                  </div>
+                  <div className="p-4 bg-[radial-gradient(circle_at_top,_#ffffff_0%,_#eef3f8_100%)]">
+                    <div
+                      ref={presentationRef}
+                      className="rounded-[28px] border border-zinc-200 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.12)] p-6 sm:p-8 space-y-6"
+                    >
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div>
+                          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-zinc-400">Packaging Dieline Preview</p>
+                          <h3 className="mt-2 text-2xl font-black tracking-tight text-zinc-900">
+                            {result.kebutuhan?.jenis_kemasan || 'Custom Packaging'}
+                          </h3>
+                          <p className="mt-2 text-sm text-zinc-500 max-w-2xl leading-relaxed">
+                            Breakdown struktur kemasan otomatis dari AI analyzer berdasarkan brief/foto referensi klien.
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 min-w-[180px]">
+                          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400 mb-1">Estimasi ukuran</p>
+                          <p className="text-lg font-black text-zinc-900">{formatDimsForDisplay(dielineMeta.dims)}</p>
+                          <p className="text-[11px] text-zinc-500 mt-1">{dielineMeta.typeLabel}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 xl:grid-cols-[280px_1fr] gap-5 items-start">
+                        <div className="space-y-4">
+                          {imagePreview && (
+                            <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-3">
+                              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400 mb-2">Foto Referensi</p>
+                              <img src={imagePreview} alt="Foto referensi kemasan" className="w-full rounded-2xl object-cover border border-zinc-200" />
+                            </div>
+                          )}
+
+                          <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-4">
+                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400 mb-2">Spesifikasi Ringkas</p>
+                            <div className="space-y-2">
+                              <InfoRow label="Bahan" value={result.kebutuhan?.bahan_rekomendasi} />
+                              <InfoRow label="Finishing" value={Array.isArray(result.kebutuhan?.finishing) ? result.kebutuhan.finishing.join(', ') : result.kebutuhan?.finishing} />
+                              <InfoRow label="Warna" value={result.kebutuhan?.warna_cetak} />
+                              <InfoRow label="Qty" value={result.kebutuhan?.qty ? `${result.kebutuhan.qty.toLocaleString('id-ID')} pcs` : '—'} />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="rounded-3xl border border-zinc-200 bg-white p-4">
+                          <div
+                            className="rounded-[24px] border border-zinc-200 bg-[linear-gradient(180deg,_#ffffff_0%,_#f8fafc_100%)] p-4"
+                            dangerouslySetInnerHTML={{ __html: dielineMeta.svg }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-4">
+                          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400 mb-2">Highlight AI</p>
+                          <p className="text-sm font-semibold text-zinc-800 leading-relaxed">{result.rekomendasi_ai?.saran_utama || '—'}</p>
+                        </div>
+                        <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-4">
+                          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400 mb-2">Catatan Approval</p>
+                          <p className="text-sm font-semibold text-zinc-800 leading-relaxed">
+                            Draft ini cocok untuk presentasi awal ke klien sebelum final artwork, proof ukuran, dan approval prepress.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Quotation */}
               <div className="card overflow-hidden">
@@ -525,12 +747,41 @@ export default function AIBriefAnalyzer() {
               )}
 
               {/* Actions */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   onClick={() => waQuotation(result)}
                   className="flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm bg-[#25D366] text-white hover:opacity-90 transition-opacity"
                 >
                   <MessageCircle size={15} /> Kirim via WhatsApp
+                </button>
+                {dielineMeta?.ok ? (
+                  <button
+                    onClick={downloadDielineSvg}
+                    className="btn-ghost flex items-center justify-center gap-2 py-3 rounded-xl"
+                  >
+                    <Download size={14} /> Download SVG Dieline
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    className="btn-ghost flex items-center justify-center gap-2 py-3 rounded-xl opacity-50 cursor-not-allowed"
+                  >
+                    <Download size={14} /> SVG belum tersedia
+                  </button>
+                )}
+                <button
+                  onClick={downloadPresentationPng}
+                  disabled={exporting === 'png' || !dielineMeta?.ok}
+                  className="btn-ghost flex items-center justify-center gap-2 py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <FileImage size={14} /> {exporting === 'png' ? 'Menyiapkan PNG...' : 'Download PNG Presentasi'}
+                </button>
+                <button
+                  onClick={downloadPresentationPdf}
+                  disabled={exporting === 'pdf' || !dielineMeta?.ok}
+                  className="btn-ghost flex items-center justify-center gap-2 py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <FileDown size={14} /> {exporting === 'pdf' ? 'Menyiapkan PDF...' : 'Download PDF Presentasi'}
                 </button>
                 <button
                   onClick={() => {
@@ -538,9 +789,10 @@ export default function AIBriefAnalyzer() {
                     setBrief('');
                     setImagePreview(null);
                     setImageCaption('');
+                    setExporting(null);
                     if (fileInputRef.current) fileInputRef.current.value = '';
                   }}
-                  className="btn-ghost flex items-center justify-center gap-2 py-3 rounded-xl"
+                  className="btn-ghost flex items-center justify-center gap-2 py-3 rounded-xl sm:col-span-2"
                 >
                   <RefreshCcw size={14} /> Brief Baru
                 </button>
