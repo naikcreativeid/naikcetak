@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Zap, RefreshCcw, AlertTriangle, TrendingUp, Lightbulb, HelpCircle, MessageCircle } from 'lucide-react';
+import { Brain, Zap, RefreshCcw, AlertTriangle, TrendingUp, Lightbulb, HelpCircle, MessageCircle, Upload, Image as ImageIcon, X, FileText } from 'lucide-react';
+import { analyzeBriefImage } from '../lib/gemini';
 
 const MODEL = 'llama-3.3-70b-versatile';
+const MAX_IMAGE_DIMENSION = 1280;
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 
 const EXAMPLES = [
   'Halo, saya punya bisnis skincare namanya Glowby. Butuh kemasan buat serum 30ml, kira-kira 500 pcs dulu buat launching. Maunya yang keliatan premium, ada emboss logo kalau bisa. Budget sekitar 10 jutaan. Butuhnya sekitar 3 minggu lagi.',
@@ -74,6 +77,41 @@ const STEPS = [
   'Menyusun quotation...',
 ];
 
+const STEPS_IMAGE = [
+  'Mengupload foto ke AI...',
+  'Mendeteksi jenis kemasan...',
+  'Mengestimasi dimensi & material...',
+  'Menganalisa finishing & warna...',
+  'Menyusun quotation visual...',
+];
+
+async function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new window.Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
+          const scale = Math.min(MAX_IMAGE_DIMENSION / width, MAX_IMAGE_DIMENSION / height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = () => reject(new Error('Gambar tidak bisa dibaca'));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error('File tidak bisa dibaca'));
+    reader.readAsDataURL(file);
+  });
+}
+
 function InfoRow({ label, value }) {
   return (
     <div className="flex justify-between items-start py-2 border-b border-zinc-100 gap-4 last:border-0">
@@ -84,19 +122,56 @@ function InfoRow({ label, value }) {
 }
 
 export default function AIBriefAnalyzer() {
+  const [mode,    setMode]    = useState('text'); // 'text' | 'image'
   const [brief,   setBrief]   = useState('');
   const [loading, setLoading] = useState(false);
   const [result,  setResult]  = useState(null);
   const [error,   setError]   = useState('');
   const [step,    setStep]    = useState(0);
 
+  const [imagePreview, setImagePreview] = useState(null); // data URL
+  const [imageCaption, setImageCaption] = useState('');
+  const fileInputRef = useRef(null);
+
   const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+
+  const activeSteps = mode === 'image' ? STEPS_IMAGE : STEPS;
+
+  async function handleImageSelect(file) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setError('File harus berupa gambar (JPG/PNG/WebP)'); return; }
+    if (file.size > MAX_IMAGE_BYTES) { setError('Ukuran file maksimal 4 MB'); return; }
+    setError('');
+    try {
+      const dataUrl = await compressImage(file);
+      setImagePreview(dataUrl);
+      setResult(null);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  async function analyzeImage() {
+    if (!imagePreview) return;
+    if (!apiKey) { setError('VITE_GROQ_API_KEY tidak ditemukan di file .env'); return; }
+    setLoading(true); setResult(null); setError(''); setStep(0);
+    const interval = setInterval(() => setStep(s => Math.min(s + 1, STEPS_IMAGE.length - 1)), 900);
+    try {
+      const data = await analyzeBriefImage({ imageDataUrl: imagePreview, caption: imageCaption });
+      clearInterval(interval);
+      setResult(data);
+    } catch (e) {
+      clearInterval(interval);
+      setError(e.message.includes('JSON') ? 'AI response tidak valid. Coba foto yang lebih jelas.' : e.message);
+    }
+    setLoading(false);
+  }
 
   async function analyze() {
     if (!brief.trim()) return;
     if (!apiKey) { setError('VITE_GROQ_API_KEY tidak ditemukan di file .env'); return; }
     setLoading(true); setResult(null); setError(''); setStep(0);
-    const interval = setInterval(() => setStep(s => Math.min(s + 1, STEPS.length - 1)), 900);
+    const interval = setInterval(() => setStep(s => Math.min(s + 1, activeSteps.length - 1)), 900);
     try {
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -176,64 +251,165 @@ export default function AIBriefAnalyzer() {
 
         {/* ── Input ───────────────────────────────────────── */}
         <div className="space-y-4">
-          <div className="card">
-            <div className="card-header">
-              <span className="section-title">Brief Klien</span>
-              {brief && (
-                <button
-                  onClick={() => { setBrief(''); setResult(null); setError(''); }}
-                  className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 hover:text-zinc-900 transition-colors"
-                >
-                  <RefreshCcw size={11} /> Reset
-                </button>
-              )}
-            </div>
-            <div className="p-5 space-y-4">
-              <textarea
-                value={brief}
-                onChange={e => setBrief(e.target.value)}
-                className="input-field resize-none h-36 text-sm leading-relaxed"
-                placeholder={`Paste atau ketik brief klien di sini...\n\nContoh: "Butuh box kemasan buat kue kering 500 pcs, ukuran sedang, full color, deadline 2 minggu, budget 3 juta..."`}
-              />
-
-              <div>
-                <p className="label mb-2">Coba contoh brief:</p>
-                <div className="flex flex-wrap gap-2">
-                  {EXAMPLES.map((ex, i) => (
-                    <button
-                      key={i}
-                      onClick={() => { setBrief(ex); setResult(null); setError(''); }}
-                      className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-600 hover:border-violet-400 hover:text-violet-700 transition-all"
-                    >
-                      Contoh {i + 1}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                onClick={analyze}
-                disabled={loading || !brief.trim()}
-                className="w-full btn-primary flex items-center justify-center gap-2 py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span className="animate-pulse text-sm">{STEPS[step]}</span>
-                  </>
-                ) : (
-                  <><Zap size={15} /> Analisis Brief &amp; Generate Quotation</>
-                )}
+          {/* Mode toggle */}
+          <div className="flex bg-zinc-100 rounded-xl p-1 gap-1">
+            {[
+              { id: 'text',  label: 'Brief Teks',     icon: FileText },
+              { id: 'image', label: 'Foto Kemasan',   icon: ImageIcon },
+            ].map(({ id, label, icon: Icon }) => (
+              <button key={id}
+                onClick={() => { setMode(id); setResult(null); setError(''); }}
+                className={`flex-1 flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg transition-all ${
+                  mode === id ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+                }`}>
+                <Icon size={14} /> {label}
               </button>
-
-              {error && (
-                <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-                  <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-                  {error}
-                </div>
-              )}
-            </div>
+            ))}
           </div>
+
+          {mode === 'text' ? (
+            <div className="card">
+              <div className="card-header">
+                <span className="section-title">Brief Klien</span>
+                {brief && (
+                  <button
+                    onClick={() => { setBrief(''); setResult(null); setError(''); }}
+                    className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 hover:text-zinc-900 transition-colors"
+                  >
+                    <RefreshCcw size={11} /> Reset
+                  </button>
+                )}
+              </div>
+              <div className="p-5 space-y-4">
+                <textarea
+                  value={brief}
+                  onChange={e => setBrief(e.target.value)}
+                  className="input-field resize-none h-36 text-sm leading-relaxed"
+                  placeholder={`Paste atau ketik brief klien di sini...\n\nContoh: "Butuh box kemasan buat kue kering 500 pcs, ukuran sedang, full color, deadline 2 minggu, budget 3 juta..."`}
+                />
+
+                <div>
+                  <p className="label mb-2">Coba contoh brief:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {EXAMPLES.map((ex, i) => (
+                      <button
+                        key={i}
+                        onClick={() => { setBrief(ex); setResult(null); setError(''); }}
+                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-600 hover:border-violet-400 hover:text-violet-700 transition-all"
+                      >
+                        Contoh {i + 1}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={analyze}
+                  disabled={loading || !brief.trim()}
+                  className="w-full btn-primary flex items-center justify-center gap-2 py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span className="animate-pulse text-sm">{activeSteps[step]}</span>
+                    </>
+                  ) : (
+                    <><Zap size={15} /> Analisis Brief &amp; Generate Quotation</>
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="card">
+              <div className="card-header">
+                <span className="section-title">Foto Kemasan Referensi</span>
+                {imagePreview && (
+                  <button
+                    onClick={() => { setImagePreview(null); setImageCaption(''); setResult(null); setError(''); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                    className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 hover:text-zinc-900 transition-colors"
+                  >
+                    <RefreshCcw size={11} /> Reset
+                  </button>
+                )}
+              </div>
+              <div className="p-5 space-y-4">
+                {!imagePreview ? (
+                  <label
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-violet-400','bg-violet-50/30'); }}
+                    onDragLeave={(e) => { e.currentTarget.classList.remove('border-violet-400','bg-violet-50/30'); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove('border-violet-400','bg-violet-50/30');
+                      handleImageSelect(e.dataTransfer.files?.[0]);
+                    }}
+                    className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-zinc-200 rounded-2xl p-10 cursor-pointer hover:border-violet-400 hover:bg-violet-50/30 transition-all"
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(e) => handleImageSelect(e.target.files?.[0])}
+                      className="hidden"
+                    />
+                    <div className="w-12 h-12 rounded-2xl bg-violet-100 flex items-center justify-center">
+                      <Upload size={20} className="text-violet-600" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-zinc-800">Upload foto kemasan</p>
+                      <p className="text-[11px] text-zinc-400 mt-1">Klik atau drag &amp; drop · JPG / PNG / WebP · max 4 MB</p>
+                    </div>
+                  </label>
+                ) : (
+                  <div className="relative rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-200">
+                    <img src={imagePreview} alt="Preview" className="w-full max-h-80 object-contain bg-zinc-50" />
+                    <button
+                      onClick={() => { setImagePreview(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                      className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors"
+                      title="Hapus gambar"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+
+                <div>
+                  <p className="label mb-2">Catatan tambahan (opsional)</p>
+                  <textarea
+                    value={imageCaption}
+                    onChange={e => setImageCaption(e.target.value)}
+                    className="input-field resize-none h-20 text-sm leading-relaxed"
+                    placeholder="Misal: Qty 1000 pcs, deadline 3 minggu, budget fleksibel, untuk brand skincare..."
+                  />
+                </div>
+
+                <button
+                  onClick={analyzeImage}
+                  disabled={loading || !imagePreview}
+                  className="w-full btn-primary flex items-center justify-center gap-2 py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span className="animate-pulse text-sm">{activeSteps[step]}</span>
+                    </>
+                  ) : (
+                    <><Zap size={15} /> Analisis Foto &amp; Generate Quotation</>
+                  )}
+                </button>
+
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  AI akan mendeteksi <strong>jenis kemasan, dimensi estimasi, material, finishing, dan warna cetak</strong> dari foto, lalu membuat quotation siap kirim ke klien.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+              <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+              {error}
+            </div>
+          )}
         </div>
 
         {/* ── Result ──────────────────────────────────────── */}
@@ -357,7 +533,13 @@ export default function AIBriefAnalyzer() {
                   <MessageCircle size={15} /> Kirim via WhatsApp
                 </button>
                 <button
-                  onClick={() => { setResult(null); setBrief(''); }}
+                  onClick={() => {
+                    setResult(null);
+                    setBrief('');
+                    setImagePreview(null);
+                    setImageCaption('');
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                  }}
                   className="btn-ghost flex items-center justify-center gap-2 py-3 rounded-xl"
                 >
                   <RefreshCcw size={14} /> Brief Baru

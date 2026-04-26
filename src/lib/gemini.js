@@ -1,6 +1,7 @@
 import Groq from 'groq-sdk';
 
 const MODEL = 'llama-3.3-70b-versatile';
+const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
 
 function getClient() {
   const key = import.meta.env.VITE_GROQ_API_KEY;
@@ -65,6 +66,104 @@ Standar Indonesia: plano 109×79cm atau 100×65cm. Bentangan = semua panel + fla
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 1024,
       temperature: 0.3,
+    });
+    return extractJSON(completion.choices[0].message.content);
+  } catch (err) {
+    handleAPIError(err);
+  }
+}
+
+/**
+ * Analisa foto kemasan via vision model. Mengembalikan JSON dengan
+ * skema sama seperti AI Brief Analyzer (klien, kebutuhan, timeline,
+ * quotation, rekomendasi_ai, status_brief, pertanyaan_klarifikasi).
+ *
+ * @param {object} args
+ * @param {string} args.imageDataUrl  Data URL gambar (data:image/...;base64,...)
+ * @param {string} [args.caption]     Catatan tambahan dari user (qty, deadline, dll)
+ */
+export async function analyzeBriefImage({ imageDataUrl, caption = '' }) {
+  const client = getClient();
+
+  const systemInstr = `Kamu konsultan kemasan percetakan profesional di Indonesia. Analisa FOTO kemasan yang dikirim user dan generate quotation lengkap untuk klien.
+
+Dari foto, identifikasi:
+- Jenis kemasan (rigid box, paperbag, sleeve, mailer box, dus lipat, pouch, dll)
+- Estimasi dimensi (PxLxT cm) berdasarkan proporsi & objek referensi yang terlihat
+- Material (Ivory, Duplex, Art Carton, Kraft, Corrugated, dll) + GSM perkiraan
+- Finishing terlihat (laminasi doff/glossy, hot stamping, emboss, deboss, spot UV, varnish, die-cut, dll)
+- Warna cetak (full color CMYK / spot color / monochrome)
+- Industri / kategori produk berdasarkan visual
+
+Output HANYA JSON valid (tanpa markdown, tanpa teks lain) dengan skema:
+{
+  "klien": { "nama_bisnis": "—", "industri": "...", "kontak_person": "—" },
+  "kebutuhan": {
+    "jenis_kemasan": "...",
+    "deskripsi": "deskripsi visual kemasan dari foto",
+    "ukuran_estimasi": "P x L x T cm (dengan catatan estimasi)",
+    "qty": angka_default_500,
+    "bahan_rekomendasi": "...",
+    "finishing": ["...", "..."],
+    "warna_cetak": "..."
+  },
+  "timeline": {
+    "deadline_klien": "—",
+    "estimasi_produksi": "10-14 hari kerja",
+    "status_urgency": "normal"
+  },
+  "quotation": {
+    "harga_satuan_min": angka,
+    "harga_satuan_max": angka,
+    "total_min": angka,
+    "total_max": angka,
+    "dp_50pct": angka,
+    "catatan_harga": "harga estimasi berdasarkan analisa visual, final price setelah konfirmasi spec"
+  },
+  "rekomendasi_ai": {
+    "saran_utama": "...",
+    "upsell": "...",
+    "resiko": "estimasi dimensi dari foto bisa meleset, perlu konfirmasi ukuran sebenarnya"
+  },
+  "status_brief": "perlu_klarifikasi",
+  "pertanyaan_klarifikasi": [
+    "Berapa qty pasti yang dibutuhkan?",
+    "Apakah dimensi sesuai estimasi atau ada ukuran spesifik?",
+    "Kapan deadline produksi?",
+    "Apakah ada referensi warna brand atau pantone tertentu?"
+  ]
+}
+
+Referensi harga pasar Indonesia 2024:
+- Rigid box premium: Rp 15.000–45.000/pcs
+- Box karton custom: Rp 2.500–8.000/pcs
+- Paperbag art paper: Rp 3.500–9.000/pcs
+- Sleeve karton: Rp 2.000–6.000/pcs
+- Mailer box: Rp 4.000–12.000/pcs
+- Pouch: Rp 1.500–5.000/pcs
+Total = harga_satuan * qty. DP 50% dari total_min.
+
+Jika user memberi caption tambahan (qty, deadline, info bisnis), masukkan ke field terkait.`;
+
+  const userText = caption.trim()
+    ? `Caption tambahan dari user: "${caption.trim()}"\n\nAnalisa foto kemasan ini sesuai instruksi system.`
+    : 'Analisa foto kemasan ini sesuai instruksi system.';
+
+  try {
+    const completion = await client.chat.completions.create({
+      model: VISION_MODEL,
+      max_tokens: 1500,
+      temperature: 0.3,
+      messages: [
+        { role: 'system', content: systemInstr },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: userText },
+            { type: 'image_url', image_url: { url: imageDataUrl } },
+          ],
+        },
+      ],
     });
     return extractJSON(completion.choices[0].message.content);
   } catch (err) {
