@@ -4,7 +4,7 @@ import {
   ShieldCheck, Search, RefreshCw, CheckCircle2, XCircle,
   Eye, Phone, Mail, ExternalLink, Loader2, Clock, UserPlus,
   KeyRound, Trash2, Zap, Users, ChevronDown, ChevronUp,
-  Bell, TrendingUp, AlertCircle, Timer, MessageCircle, Globe2,
+  Bell, TrendingUp, AlertCircle, Timer, MessageCircle, Globe2, Wallet,
 } from 'lucide-react';
 import {
   adminGetUpgradeRequests, adminApproveUpgrade, adminRejectUpgrade,
@@ -16,6 +16,7 @@ import { PLANS } from '../lib/plans';
 import { formatRp } from '../lib/masterData';
 import AdminSubscriptionDashboard from './AdminSubscriptionDashboard';
 import SiteSettingsPanel from './SiteSettingsPanel';
+import { PartnersTab, PayoutsTab } from './AdminReferral';
 
 const PAYMENT_INFO_WA = import.meta.env.VITE_ADMIN_WA ?? '6281234567890';
 
@@ -1168,6 +1169,8 @@ export default function AdminUpgrades({ user }) {
           { id: 'users',         label: 'Kelola User',      icon: Users        },
           { id: 'reminders',     label: 'Reminders',        icon: Bell         },
           { id: 'subscriptions', label: 'Subscriptions',    icon: TrendingUp   },
+          { id: 'partners',      label: 'Partners',         icon: Users        },
+          { id: 'payouts',       label: 'Payouts',          icon: Wallet       },
           { id: 'seo',           label: 'SEO Website',      icon: Globe2       },
         ].map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => setTab(id)}
@@ -1183,6 +1186,8 @@ export default function AdminUpgrades({ user }) {
       {tab === 'users'         && <ManageUsersTab            user={user} />}
       {tab === 'reminders'     && <RemindersTab              user={user} />}
       {tab === 'subscriptions' && <AdminSubscriptionDashboard />}
+      {tab === 'partners'      && <PartnersTab />}
+      {tab === 'payouts'       && <PayoutsTab />}
       {tab === 'seo'           && <SiteSettingsPanel user={user} />}
     </div>
   );

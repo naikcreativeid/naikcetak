@@ -47,6 +47,7 @@ import SiteSettingsPanel from './components/SiteSettingsPanel';
 import { captureReferralFromUrl, applyStoredReferral } from './lib/referral';
 import LegalPage from './components/LegalPage';
 import MarketingPage from './components/MarketingPage';
+import PartnerDashboard from './components/PartnerDashboard';
 
 const INIT_IDENTITY = { productName: '', dimLength: '', dimWidth: '', dimHeight: '', gsm: '' };
 const INIT_SPECS    = { planoLength: 0, planoWidth: 0, flatLength: 0, flatWidth: 0, grip: 2, wasteRate: 5, colorCount: 4 };
@@ -487,6 +488,8 @@ export default function App() {
           <MasterFinishing />
         ) : activePage === 'masterMesin' ? (
           <MasterMesin />
+        ) : activePage === 'partner' ? (
+          <PartnerDashboard />
         ) : activePage === 'adminUpgrades' && isAdmin ? (
           <AdminUpgrades user={user} />
         ) : activePage === 'siteSettings' && isAdmin ? (

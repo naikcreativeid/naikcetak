@@ -677,6 +677,111 @@ export async function adminDeleteUser(userId) {
   if (error) throw error;
 }
 
+// ── Referral & Commission (NaikCetak Elite Partner) ──────────────────────────
+
+export async function ensureReferralCode() {
+  if (!isConfigured) return null;
+  const { data, error } = await supabase.rpc('ensure_referral_code');
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] ?? null : data;
+}
+
+export async function getPartnerSummary() {
+  if (!isConfigured) return null;
+  const { data, error } = await supabase.rpc('get_partner_summary');
+  if (error) throw error;
+  return data;
+}
+
+export async function getPartnerCommissions() {
+  if (!isConfigured) return [];
+  const { data, error } = await supabase.rpc('get_partner_commissions');
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function requestPayout({ amount, bankName, accountNumber, accountName, notes }) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { data, error } = await supabase.rpc('request_payout', {
+    p_amount:              amount,
+    p_bank_name:           bankName,
+    p_bank_account_number: accountNumber,
+    p_bank_account_name:   accountName,
+    p_notes:               notes ?? null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function getUserPayoutRequests() {
+  if (!isConfigured) return [];
+  const { data, error } = await supabase
+    .from('payout_requests')
+    .select('id, requested_amount, status, bank_name, bank_account_number, bank_account_name, partner_notes, admin_notes, payment_proof_url, paid_at, created_at')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function adminPartnerStats() {
+  if (!isConfigured) return null;
+  const { data, error } = await supabase.rpc('admin_partner_stats');
+  if (error) throw error;
+  return data;
+}
+
+export async function adminListPartners(status = null) {
+  if (!isConfigured) return [];
+  const { data, error } = await supabase.rpc('admin_list_partners', { p_status: status });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function adminApprovePartner(userId) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { data, error } = await supabase.rpc('admin_approve_partner', { p_user_id: userId });
+  if (error) throw error;
+  return data;
+}
+
+export async function adminRejectPartner(userId, reason) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { data, error } = await supabase.rpc('admin_reject_partner', {
+    p_user_id: userId,
+    p_reason:  reason,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function adminListPayoutRequests(status = null) {
+  if (!isConfigured) return [];
+  const { data, error } = await supabase.rpc('admin_list_payout_requests', { p_status: status });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function adminApprovePayout(payoutId, paymentProofUrl, adminNotes = null) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { data, error } = await supabase.rpc('admin_approve_payout', {
+    p_payout_id:         payoutId,
+    p_payment_proof_url: paymentProofUrl,
+    p_admin_notes:       adminNotes,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function adminRejectPayout(payoutId, adminNotes) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+  const { data, error } = await supabase.rpc('admin_reject_payout', {
+    p_payout_id:   payoutId,
+    p_admin_notes: adminNotes,
+  });
+  if (error) throw error;
+  return data;
+}
+
 // Forgot password tanpa email — user verifikasi email dulu, lalu langsung ganti password
 export async function resetPasswordByEmail(email, newPassword) {
   if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');

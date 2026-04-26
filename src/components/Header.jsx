@@ -4,7 +4,7 @@ import {
   Package2, LogOut, User, Calculator, FileText, Brain,
   LayoutDashboard, Mail, Package, Timer, Menu, X, Zap,
   Scissors, Printer, Database, Layers, Cpu, ShieldCheck, CreditCard, Store,
-  BarChart3, Truck, ClipboardList,
+  BarChart3, Truck, ClipboardList, Users,
 } from 'lucide-react';
 import { logout } from '../lib/supabase';
 import { PLANS } from '../lib/plans';
@@ -50,6 +50,12 @@ const NAV_GROUPS = [
     items: [
       { id: 'brief', Icon: Brain, label: 'AI Brief Analyzer' },
       { id: 'email', Icon: Mail,  label: 'Email & Proposal'  },
+    ],
+  },
+  {
+    label: 'PARTNER',
+    items: [
+      { id: 'partner', Icon: Users, label: 'Elite Partner', badge: 'Komisi', badgeColor: 'emerald' },
     ],
   },
 ];
