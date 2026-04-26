@@ -7,8 +7,16 @@
 -- Postgres strict-check tipe TABLE return → harus exact match.
 --
 -- Solusi: cast eksplisit ke ::TEXT di RETURN QUERY.
--- Aman dijalankan ulang (CREATE OR REPLACE).
+-- Aman dijalankan ulang (DROP + CREATE).
+--
+-- DROP dulu karena return signature berubah (VARCHAR → TEXT).
+-- CREATE OR REPLACE saja tidak bisa mengubah tipe OUT param.
 -- ============================================================
+
+DROP FUNCTION IF EXISTS get_partner_commissions();
+DROP FUNCTION IF EXISTS admin_list_payout_requests(TEXT);
+DROP FUNCTION IF EXISTS admin_list_partners(TEXT);
+DROP FUNCTION IF EXISTS ensure_referral_code();
 
 -- ── get_partner_commissions ─────────────────────────────────────────
 CREATE OR REPLACE FUNCTION get_partner_commissions()
