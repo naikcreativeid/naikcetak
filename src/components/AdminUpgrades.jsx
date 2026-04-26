@@ -434,9 +434,15 @@ function RequestRow({ req, adminEmail, onApproved, onRejected }) {
               </button>
             </div>
           ) : req.status === 'pending' && automatedPayment ? (
-            <div className="space-y-1 text-[11px] text-zinc-500">
-              <p className="font-semibold text-sky-700">Diproses otomatis</p>
-              <p>{getMidtransStatusLabel(req.transaction_status || 'pending')}</p>
+            <div className="space-y-1.5">
+              <div className="text-[11px] text-zinc-500">
+                <p className="font-semibold text-sky-700">Diproses otomatis</p>
+                <p>{getMidtransStatusLabel(req.transaction_status || 'pending')}</p>
+              </div>
+              <button onClick={() => setShowReject(true)}
+                className="flex items-center gap-1 text-[11px] font-bold bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded-md transition-colors">
+                <XCircle size={10} /> Batalkan
+              </button>
             </div>
           ) : req.status === 'approved' ? (
             <a href={waApproveLink(req, approvedAt ?? req.reviewed_at)} target="_blank" rel="noopener noreferrer"
