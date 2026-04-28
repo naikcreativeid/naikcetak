@@ -118,14 +118,14 @@ function TermsContent() {
         <li>Harga dapat berubah dari waktu ke waktu dan akan ditampilkan di halaman harga sebelum pembayaran dilakukan.</li>
       </UL>
       <P>
-        Pembayaran diproses melalui Midtrans sebagai mitra payment gateway resmi. Dengan
-        melakukan pembayaran, Anda juga tunduk pada ketentuan Midtrans, bank, penerbit kartu,
+        Pembayaran diproses melalui transfer bank, QRIS, atau kanal pembayaran resmi lain yang
+        kami sediakan. Dengan melakukan pembayaran, Anda juga tunduk pada ketentuan bank, QRIS,
         dompet digital, atau kanal pembayaran lain yang Anda gunakan. {MERCHANT.name} tidak
         menyimpan data kartu kredit, nomor kartu, CVV, PIN, atau kredensial pembayaran sensitif.
       </P>
       <P>
-        Langganan atau aktivasi fitur berbayar akan diproses setelah sistem menerima notifikasi
-        pembayaran berhasil dari Midtrans atau metode verifikasi internal yang sah.
+        Langganan atau aktivasi fitur berbayar akan diproses setelah sistem menerima verifikasi
+        pembayaran yang sah dari admin atau metode verifikasi internal yang sah.
         Apabila pembayaran gagal, tertunda, kedaluwarsa, dibatalkan, ditolak, atau terindikasi
         fraud, maka akses berbayar dapat ditunda, tidak diaktifkan, atau dihentikan.
       </P>

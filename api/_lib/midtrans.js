@@ -1,26 +1,15 @@
-import crypto from 'node:crypto';
-import midtransClient from 'midtrans-client';
-import { getRequiredEnv, isProductionMidtrans } from './config.js';
-
-let snapInstance;
+// ============================================
+// MIDTRANS DISABLED — 2026-04-28
+// Alasan: Proses approval Midtrans belum selesai
+// Akan diaktifkan kembali setelah akun disetujui
+// ============================================
 
 export function getMidtransSnap() {
-  if (!snapInstance) {
-    snapInstance = new midtransClient.Snap({
-      isProduction: isProductionMidtrans(),
-      serverKey: getRequiredEnv('MIDTRANS_SERVER_KEY'),
-      clientKey: getRequiredEnv('VITE_MIDTRANS_CLIENT_KEY'),
-    });
-  }
-
-  return snapInstance;
+  throw new Error('Midtrans integration is disabled.');
 }
 
-export function verifyMidtransSignature(payload) {
-  const serverKey = getRequiredEnv('MIDTRANS_SERVER_KEY');
-  const signatureBase = `${payload.order_id ?? ''}${payload.status_code ?? ''}${payload.gross_amount ?? ''}${serverKey}`;
-  const expected = crypto.createHash('sha512').update(signatureBase).digest('hex');
-  return expected === payload.signature_key;
+export function verifyMidtransSignature() {
+  return false;
 }
 
 export function isSuccessfulTransaction(status, fraudStatus) {

@@ -1,38 +1,20 @@
 import { allowMethods, sendJson } from './_lib/http.js';
 import { getEnv } from './_lib/config.js';
 
-function readBooleanEnv(name, fallbackNames = []) {
-  const value = getEnv(name, fallbackNames);
-  if (value === undefined) return null;
-  return value === 'true';
-}
-
 function getEnvPresence(name, fallbackNames = []) {
   const directValue = getEnv(name);
   if (directValue !== undefined) {
-    return {
-      name,
-      present: true,
-      source: name,
-    };
+    return { name, present: true, source: name };
   }
 
   for (const fallbackName of fallbackNames) {
     const fallbackValue = getEnv(fallbackName);
     if (fallbackValue !== undefined) {
-      return {
-        name,
-        present: true,
-        source: fallbackName,
-      };
+      return { name, present: true, source: fallbackName };
     }
   }
 
-  return {
-    name,
-    present: false,
-    source: null,
-  };
+  return { name, present: false, source: null };
 }
 
 export default async function handler(req, res) {
@@ -41,29 +23,33 @@ export default async function handler(req, res) {
   const envChecks = {
     VITE_SUPABASE_URL: getEnvPresence('VITE_SUPABASE_URL', ['SUPABASE_URL']),
     VITE_SUPABASE_ANON_KEY: getEnvPresence('VITE_SUPABASE_ANON_KEY', ['SUPABASE_ANON_KEY']),
-    VITE_MIDTRANS_CLIENT_KEY: getEnvPresence('VITE_MIDTRANS_CLIENT_KEY'),
-    MIDTRANS_SERVER_KEY: getEnvPresence('MIDTRANS_SERVER_KEY'),
     SUPABASE_SERVICE_ROLE_KEY: getEnvPresence('SUPABASE_SERVICE_ROLE_KEY'),
-    VITE_MIDTRANS_IS_PRODUCTION: getEnvPresence('VITE_MIDTRANS_IS_PRODUCTION', ['MIDTRANS_IS_PRODUCTION']),
-    MIDTRANS_IS_PRODUCTION: getEnvPresence('MIDTRANS_IS_PRODUCTION', ['VITE_MIDTRANS_IS_PRODUCTION']),
+    VITE_BCA_NO_REK: getEnvPresence('VITE_BCA_NO_REK', ['NEXT_PUBLIC_BCA_NO_REK']),
+    VITE_BCA_ATAS_NAMA: getEnvPresence('VITE_BCA_ATAS_NAMA', ['NEXT_PUBLIC_BCA_ATAS_NAMA']),
+    VITE_MANDIRI_NO_REK: getEnvPresence('VITE_MANDIRI_NO_REK', ['NEXT_PUBLIC_MANDIRI_NO_REK']),
+    VITE_MANDIRI_ATAS_NAMA: getEnvPresence('VITE_MANDIRI_ATAS_NAMA', ['NEXT_PUBLIC_MANDIRI_ATAS_NAMA']),
+    VITE_ADMIN_WA: getEnvPresence('VITE_ADMIN_WA', ['NEXT_PUBLIC_ADMIN_WA']),
+    VITE_QRIS_IMAGE: getEnvPresence('VITE_QRIS_IMAGE', ['NEXT_PUBLIC_QRIS_IMAGE']),
+    SMTP_HOST: getEnvPresence('SMTP_HOST'),
+    SMTP_PORT: getEnvPresence('SMTP_PORT'),
+    SMTP_USER: getEnvPresence('SMTP_USER'),
+    SMTP_PASS: getEnvPresence('SMTP_PASS'),
+    EMAIL_FROM: getEnvPresence('EMAIL_FROM'),
   };
 
   const checkoutReady =
     envChecks.VITE_SUPABASE_URL.present &&
     envChecks.VITE_SUPABASE_ANON_KEY.present &&
-    envChecks.VITE_MIDTRANS_CLIENT_KEY.present &&
-    envChecks.MIDTRANS_SERVER_KEY.present;
+    envChecks.VITE_BCA_NO_REK.present &&
+    envChecks.VITE_ADMIN_WA.present;
 
-  const webhookReady =
-    envChecks.MIDTRANS_SERVER_KEY.present &&
-    envChecks.SUPABASE_SERVICE_ROLE_KEY.present;
-
-  const clientProductionMode = readBooleanEnv('VITE_MIDTRANS_IS_PRODUCTION');
-  const serverProductionMode = readBooleanEnv('MIDTRANS_IS_PRODUCTION', ['VITE_MIDTRANS_IS_PRODUCTION']);
-  const midtransModeAligned =
-    clientProductionMode !== null &&
-    serverProductionMode !== null &&
-    clientProductionMode === serverProductionMode;
+  const emailReady =
+    envChecks.SUPABASE_SERVICE_ROLE_KEY.present &&
+    envChecks.SMTP_HOST.present &&
+    envChecks.SMTP_PORT.present &&
+    envChecks.SMTP_USER.present &&
+    envChecks.SMTP_PASS.present &&
+    envChecks.EMAIL_FROM.present;
 
   const missing = Object.values(envChecks)
     .filter((item) => !item.present)
@@ -71,28 +57,18 @@ export default async function handler(req, res) {
 
   const warnings = [];
   if (!checkoutReady) {
-    warnings.push('Checkout Midtrans belum siap penuh karena masih ada env penting yang belum terpasang.');
+    warnings.push('Checkout manual belum siap penuh karena masih ada env pembayaran yang belum terpasang.');
   }
-  if (!webhookReady) {
-    warnings.push('Webhook Midtrans belum siap penuh; pembayaran bisa terjadi tetapi aktivasi paket otomatis berisiko gagal.');
-  }
-  if (!midtransModeAligned) {
-    warnings.push('Mode Midtrans client/server tidak sinkron. Samakan VITE_MIDTRANS_IS_PRODUCTION dan MIDTRANS_IS_PRODUCTION.');
+  if (!emailReady) {
+    warnings.push('Email follow-up otomatis belum siap; lengkapi SMTP Hostinger dan service role Supabase.');
   }
 
   sendJson(res, 200, {
-    ok: checkoutReady && webhookReady && midtransModeAligned,
+    ok: checkoutReady && emailReady,
     checkedAt: new Date().toISOString(),
-    environment: {
-      nodeEnv: process.env.NODE_ENV ?? null,
-      clientMidtransProduction: clientProductionMode,
-      serverMidtransProduction: serverProductionMode,
-      midtransModeAligned,
-    },
     capabilities: {
-      checkoutReady,
-      webhookReady,
-      automaticPlanActivationReady: webhookReady,
+      manualCheckoutReady: checkoutReady,
+      starterFollowUpEmailReady: emailReady,
     },
     env: envChecks,
     missing,

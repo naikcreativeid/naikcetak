@@ -318,6 +318,20 @@ function RegisterForm({ onSwitch, onSuccess }) {
         // Email confirmation ON — user dibuat tapi belum dapat session
         setErrors({ general: 'Akun berhasil dibuat! Cek email Anda untuk konfirmasi sebelum login.' });
       } else {
+        try {
+          const accessToken = data?.session?.access_token;
+          const userId = data?.user?.id;
+          if (accessToken && userId) {
+            await fetch(`/api/send-upgrade-followups?targetUserId=${encodeURIComponent(userId)}`, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+              },
+            });
+          }
+        } catch (emailErr) {
+          console.warn('[Register] follow-up email skipped:', emailErr);
+        }
         onSuccess?.('registered');
       }
     } catch (err) {

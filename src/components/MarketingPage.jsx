@@ -97,7 +97,7 @@ const PAGE_CONTENT = {
     highlights: [
       'Kalkulator HPP, biaya cetak, dan simulasi untuk membantu akurasi harga.',
       'Dokumen operasional seperti invoice, quotation, surat jalan, dan PO supplier.',
-      'Tracking order, storefront publik, langganan Pro, dan dukungan pembayaran Midtrans.',
+      'Tracking order, storefront publik, langganan Pro, dan dukungan pembayaran manual transfer bank/QRIS.',
     ],
     sections: [
       {

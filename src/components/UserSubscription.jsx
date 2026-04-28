@@ -7,7 +7,7 @@ import {
 import { usePlanContext } from '../contexts/PlanContext';
 import { PLANS } from '../lib/plans';
 import { getUserSubscriptionHistory, getUserUpgradeRequests } from '../lib/supabase';
-import { getMidtransStatusLabel } from '../lib/midtrans';
+import { getPaymentStatusLabel } from '../lib/payments';
 
 function daysUntil(date) {
   if (!date) return null;
@@ -300,7 +300,7 @@ export default function UserSubscription({ user, onUpgradeClick }) {
           <div className="text-xs text-zinc-400">Memuat status pembayaran...</div>
         ) : !latestRequest ? (
           <div className="text-xs text-zinc-400">
-            Belum ada transaksi upgrade. Saat Anda checkout paket Pro, progres Midtrans akan muncul di sini.
+            Belum ada transaksi upgrade. Saat Anda checkout paket Pro, progres pembayaran manual akan muncul di sini.
           </div>
         ) : (
           <div className="space-y-3">
@@ -312,8 +312,8 @@ export default function UserSubscription({ user, onUpgradeClick }) {
               />
               <InfoTile
                 icon={CreditCard}
-                label="Status gateway"
-                value={getMidtransStatusLabel(latestRequest.transaction_status || latestRequest.status)}
+                label="Status pembayaran"
+                value={getPaymentStatusLabel(latestRequest.transaction_status || latestRequest.status)}
                 highlight={['settlement', 'capture', 'approved'].includes(latestRequestProgress) ? 'text-emerald-600' : ''}
               />
             </div>
@@ -327,7 +327,7 @@ export default function UserSubscription({ user, onUpgradeClick }) {
                 <span className="text-zinc-500">Metode</span>
                 <span className="font-semibold text-zinc-800">
                   {latestRequest.payment_method
-                    ? latestRequest.payment_method.replace(/^midtrans_/i, '').replace(/_/g, ' ')
+                    ? latestRequest.payment_method.replace(/_/g, ' ')
                     : '—'}
                 </span>
               </div>
@@ -349,7 +349,7 @@ export default function UserSubscription({ user, onUpgradeClick }) {
               )}
               {latestRequest.webhook_received_at && (
                 <div className="flex items-center justify-between gap-3 text-sm">
-                  <span className="text-zinc-500">Webhook diterima</span>
+                  <span className="text-zinc-500">Diverifikasi admin</span>
                   <span className="text-zinc-700">{formatDateTime(latestRequest.webhook_received_at)}</span>
                 </div>
               )}
@@ -357,7 +357,7 @@ export default function UserSubscription({ user, onUpgradeClick }) {
 
             {['pending', 'manual_review'].includes(latestRequestProgress) && (
               <p className="text-xs text-zinc-500">
-                Jika Anda sudah menyelesaikan pembayaran di popup Midtrans, tunggu beberapa saat sampai webhook diproses otomatis.
+                Jika Anda sudah transfer dan upload bukti, tunggu beberapa saat sampai admin memverifikasi pembayaran Anda.
               </p>
             )}
 

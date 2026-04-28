@@ -130,9 +130,9 @@ export function formatPriceLabel(planId, cycle) {
 // ── Kontak & info pembayaran ──────────────────────────────────────────────────
 export const PAYMENT_INFO = {
   bank: 'BCA',
-  accountNumber: '2740049987',
-  accountName: 'Faizal Nur Apriyadi',
-  whatsappAdmin: '6282261039601',
+  accountNumber: import.meta.env.VITE_BCA_NO_REK ?? '2740238623',
+  accountName: import.meta.env.VITE_BCA_ATAS_NAMA ?? 'Dwi Retno Dinda Ramdhiani',
+  whatsappAdmin: import.meta.env.VITE_ADMIN_WA ?? '6282261039601',
   emailAdmin: 'admin@naikcetak.com',
 };
 
