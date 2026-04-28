@@ -36,6 +36,7 @@ const LANDING_URL = import.meta.env.VITE_LANDING_URL ?? 'https://naikcetak.com';
 const SITE_SETTINGS_TABLE = 'site_settings';
 const SITE_ASSET_BUCKET = 'site-assets';
 const SITE_SETTINGS_FALLBACK_KEY = 'naikcetak-site-settings-fallback';
+const PAYMENT_PROOF_BUCKET = 'payment-proofs';
 
 export const DEFAULT_SITE_SETTINGS = {
   id: 'global',
@@ -436,16 +437,14 @@ export async function uploadPaymentProof(userId, requestId, file) {
   const ext = file.name.split('.').pop();
   const path = `${userId}/${requestId}-${Date.now()}.${ext}`;
   const { error: uploadError } = await supabase.storage
-    .from('payment-proofs')
+    .from(PAYMENT_PROOF_BUCKET)
     .upload(path, file, { contentType: file.type });
   if (uploadError) throw uploadError;
 
-  const { data: { publicUrl } } = supabase.storage.from('payment-proofs').getPublicUrl(path);
+  await supabase.from('upgrade_requests').update({ payment_proof_url: path }).eq('id', requestId).eq('user_id', userId);
+  await supabase.from('user_profiles').update({ payment_proof_url: path }).eq('id', userId);
 
-  await supabase.from('upgrade_requests').update({ payment_proof_url: publicUrl }).eq('id', requestId).eq('user_id', userId);
-  await supabase.from('user_profiles').update({ payment_proof_url: publicUrl }).eq('id', userId);
-
-  return publicUrl;
+  return getPaymentProofAccessUrl(path);
 }
 
 function extractStorageObjectPath(fileUrl, bucket) {
@@ -473,22 +472,39 @@ function extractStorageObjectPath(fileUrl, bucket) {
   return null;
 }
 
+function isStorageBucketRef(fileUrl, bucket = PAYMENT_PROOF_BUCKET) {
+  return Boolean(extractStorageObjectPath(fileUrl, bucket));
+}
+
 export async function getPaymentProofAccessUrl(fileUrl, expiresIn = 3600) {
   if (!isConfigured || !fileUrl) return fileUrl ?? null;
 
-  const objectPath = extractStorageObjectPath(fileUrl, 'payment-proofs');
+  const objectPath = extractStorageObjectPath(fileUrl, PAYMENT_PROOF_BUCKET);
   if (!objectPath) return fileUrl;
 
   const { data, error } = await supabase.storage
-    .from('payment-proofs')
+    .from(PAYMENT_PROOF_BUCKET)
     .createSignedUrl(objectPath, expiresIn);
 
   if (error || !data?.signedUrl) {
-    console.warn('[payment-proof] signed url fallback:', error?.message ?? 'missing signed URL');
-    return fileUrl;
+    const reason = error?.message ?? 'missing signed URL';
+    console.warn('[payment-proof] signed url failed:', reason);
+
+    if (error) {
+      if (/bucket not found/i.test(reason)) {
+        throw new Error('Bucket storage bukti transfer belum tersedia di Supabase.');
+      }
+      throw new Error('Bukti transfer tidak bisa diakses. Cek bucket dan policy storage admin.');
+    }
+
+    throw new Error('Signed URL bukti transfer tidak berhasil dibuat.');
   }
 
   return data.signedUrl;
+}
+
+export function isPaymentProofStorageRef(fileUrl) {
+  return isStorageBucketRef(fileUrl, PAYMENT_PROOF_BUCKET);
 }
 
 // ── Admin Functions ───────────────────────────────────────────────────────────

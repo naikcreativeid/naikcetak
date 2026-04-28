@@ -10,6 +10,7 @@ import {
   adminGetUpgradeRequests, adminApproveUpgrade, adminRejectUpgrade,
   adminGetAllUsers, adminCreateUser, adminResetUserPassword, adminDirectUpgrade, adminDeleteUser,
   getSubscriptionStats, adminGetReminderList, adminMarkReminderSent, adminSendStarterFollowUpEmails, getPaymentProofAccessUrl,
+  isPaymentProofStorageRef,
 } from '../lib/supabase';
 import { getPaymentStatusLabel } from '../lib/payments';
 import { PLANS } from '../lib/plans';
@@ -333,19 +334,22 @@ function RequestRow({ req, adminEmail, onApproved, onRejected }) {
     setProofOpen(true);
     setProofLoading(true);
     setProofError('');
+    setProofUrl('');
 
     try {
       const signedUrl = await getPaymentProofAccessUrl(req.payment_proof_url);
-      setProofUrl(signedUrl || req.payment_proof_url);
+      setProofUrl(signedUrl || '');
     } catch (err) {
       setProofError(err.message || 'Bukti transfer tidak bisa dimuat.');
-      setProofUrl(req.payment_proof_url);
+      if (!isPaymentProofStorageRef(req.payment_proof_url)) {
+        setProofUrl(req.payment_proof_url);
+      }
     } finally {
       setProofLoading(false);
     }
   };
 
-  const previewUrl = proofUrl || req.payment_proof_url;
+  const previewUrl = proofUrl || (!isPaymentProofStorageRef(req.payment_proof_url) ? req.payment_proof_url : '');
   const isPdfProof = /\.pdf($|\?)/i.test(previewUrl ?? '');
 
   const handleApprove = async () => {
@@ -480,10 +484,12 @@ function RequestRow({ req, adminEmail, onApproved, onRejected }) {
                 ) : proofError ? (
                   <div className="text-center space-y-2">
                     <p className="text-sm text-red-500">{proofError}</p>
-                    <a href={previewUrl} target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:underline">
-                      <ExternalLink size={12} /> Buka bukti di tab baru
-                    </a>
+                    {previewUrl ? (
+                      <a href={previewUrl} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:underline">
+                        <ExternalLink size={12} /> Buka bukti di tab baru
+                      </a>
+                    ) : null}
                   </div>
                 ) : isPdfProof ? (
                   <iframe
