@@ -624,6 +624,33 @@ export async function adminMarkReminderSent(userId, reminderType) {
   });
 }
 
+export async function adminSendStarterFollowUpEmails({ limit = 25, dryRun = false } = {}) {
+  if (!isConfigured) throw new Error('Supabase belum dikonfigurasi');
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw new Error('Sesi admin tidak ditemukan. Silakan login ulang.');
+
+  const query = new URLSearchParams({
+    limit: String(limit),
+    dryRun: dryRun ? 'true' : 'false',
+  });
+
+  const response = await fetch(`/api/send-upgrade-followups?${query.toString()}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.error || 'Gagal mengirim follow-up email.');
+  }
+
+  return payload;
+}
+
 export async function adminActivatePlan(userId, plan, billingCycle, {
   amountPaid = 0, paymentMethod = null, isRenewal = false, notes = null,
   upgradeRequestId = null,

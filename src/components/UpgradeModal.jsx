@@ -1,9 +1,32 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Check, Loader2, CheckCircle2, AlertCircle, Clock3, Zap } from 'lucide-react';
+import {
+  AlertCircle,
+  Check,
+  CheckCircle2,
+  Clock3,
+  Copy,
+  Loader2,
+  MessageCircle,
+  QrCode,
+  UploadCloud,
+  Wallet,
+  X,
+  Zap,
+} from 'lucide-react';
 import { PLANS, getEffectivePrice } from '../lib/plans';
-import { supabase, getUpgradeRequestByOrderId } from '../lib/supabase';
-import { createMidtransTransaction, getMidtransStatusLabel, loadMidtransSnapScript } from '../lib/midtrans';
+import { supabase, getUpgradeRequestByOrderId, uploadPaymentProof } from '../lib/supabase';
+import {
+  buildWhatsAppPaymentText,
+  formatPaymentMethodLabel,
+  formatUniqueCode,
+  getInstructionDeadline,
+  getPaymentEnv,
+  getPaymentMethodMeta,
+  getPaymentMethodOptions,
+  getPaymentStatusLabel,
+  getPaymentStatusMeta,
+} from '../lib/payments';
 
 const PRO_FEATURES = [
   [
@@ -34,21 +57,8 @@ const STARTER_FEATURES = [
   { ok: false, label: 'Penggunaan tidak terbatas' },
 ];
 
-const PAYMENT_STATE_META = {
-  pending: { label: 'Menunggu pembayaran', bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-400' },
-  settlement: { label: 'Pembayaran berhasil', bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-  capture: { label: 'Pembayaran berhasil', bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-  deny: { label: 'Pembayaran ditolak', bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' },
-  cancel: { label: 'Pembayaran dibatalkan', bg: 'bg-zinc-100', text: 'text-zinc-600', dot: 'bg-zinc-400' },
-  expire: { label: 'Pembayaran kedaluwarsa', bg: 'bg-zinc-100', text: 'text-zinc-600', dot: 'bg-zinc-400' },
-  failure: { label: 'Pembayaran gagal', bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' },
-  approved: { label: 'Paket aktif', bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-  rejected: { label: 'Permintaan ditolak', bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' },
-  cancelled: { label: 'Permintaan dibatalkan', bg: 'bg-zinc-100', text: 'text-zinc-600', dot: 'bg-zinc-400' },
-};
-
 function PaymentStatusBadge({ status }) {
-  const meta = PAYMENT_STATE_META[status] ?? PAYMENT_STATE_META.pending;
+  const meta = getPaymentStatusMeta(status);
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${meta.bg} ${meta.text}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
@@ -141,7 +151,7 @@ function ComparisonView({ cycle, onCycleChange, onUpgrade }) {
           </h3>
 
           <p className="text-sm text-zinc-500 mb-4 leading-relaxed">
-            Checkout otomatis via Midtrans Snap. Begitu pembayaran terkonfirmasi, paket Anda aktif tanpa upload bukti transfer manual.
+            Checkout manual yang rapi: pilih metode bayar, transfer sesuai nominal unik, kirim bukti, lalu admin verifikasi dan paket aktif.
           </p>
 
           <div className="mb-4">
@@ -195,11 +205,11 @@ function ComparisonView({ cycle, onCycleChange, onUpgrade }) {
             whileTap={{ scale: 0.99 }}
             className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold rounded-xl text-sm transition-all shadow-md hover:shadow-lg hover:shadow-blue-200"
           >
-            BAYAR DENGAN MIDTRANS SNAP
+            LANJUT CHECKOUT MANUAL
           </motion.button>
 
           <p className="text-[11px] text-center text-zinc-400 mt-2 leading-relaxed">
-            Mendukung transfer bank, e-wallet, QRIS, dan metode lain yang aktif di akun Midtrans Anda.
+            Tersedia transfer BCA, Mandiri, dan QRIS. Nominal dilengkapi kode unik 3 digit agar mudah dicek.
           </p>
         </div>
       </div>
@@ -207,95 +217,137 @@ function ComparisonView({ cycle, onCycleChange, onUpgrade }) {
   );
 }
 
-function ResultPanel({ state, orderStatus, orderId, error, onRetry, onClose }) {
-  const isSuccess = state === 'success';
-  const isFailed = state === 'failed';
+function StepIndicator({ currentStep }) {
+  const steps = ['Detail Pemesan', 'Pembayaran', 'Instruksi Bayar'];
 
   return (
-    <div className="space-y-5">
-      <div className="text-center">
-        <div
-          className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 ${
-            isSuccess ? 'bg-emerald-100' : isFailed ? 'bg-red-100' : 'bg-blue-100'
-          }`}
-        >
-          {isSuccess ? (
-            <CheckCircle2 size={30} className="text-emerald-600" />
-          ) : isFailed ? (
-            <AlertCircle size={30} className="text-red-600" />
-          ) : (
-            <Clock3 size={30} className="text-blue-600" />
-          )}
-        </div>
-
-        <h3 className="text-lg font-bold text-zinc-900">
-          {isSuccess ? 'Pembayaran berhasil' : isFailed ? 'Pembayaran belum berhasil' : 'Menunggu konfirmasi pembayaran'}
-        </h3>
-        <p className="text-sm text-zinc-500 mt-2 max-w-sm mx-auto leading-relaxed">
-          {isSuccess
-            ? 'Midtrans sudah mengirim konfirmasi ke server kami dan paket Anda akan aktif otomatis.'
-            : isFailed
-              ? error || 'Transaksi belum selesai. Anda bisa mencoba lagi kapan saja.'
-              : 'Popup Midtrans sudah diproses. Kami sedang menunggu webhook untuk memastikan status transaksi terbaru.'}
-        </p>
-      </div>
-
-      {orderStatus && (
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Status Midtrans</p>
-            <PaymentStatusBadge status={orderStatus} />
+    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+      {steps.map((label, index) => {
+        const active = currentStep === index + 1;
+        const done = currentStep > index + 1;
+        return (
+          <div key={label} className="flex items-center gap-2 shrink-0">
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                done
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : active
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-zinc-100 text-zinc-400'
+              }`}
+            >
+              {done ? <Check size={14} /> : index + 1}
+            </div>
+            <span className={`text-xs font-semibold ${active || done ? 'text-zinc-800' : 'text-zinc-400'}`}>
+              {label}
+            </span>
+            {index < steps.length - 1 && <div className="w-8 h-px bg-zinc-200" />}
           </div>
-          <p className="text-sm font-bold text-zinc-900">{getMidtransStatusLabel(orderStatus)}</p>
-          {orderId && (
-            <p className="text-[11px] text-zinc-400 mt-2">
-              Order ID: <span className="font-mono">{orderId}</span>
-            </p>
-          )}
+        );
+      })}
+    </div>
+  );
+}
+
+function InstructionDeadline({ createdAt }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000 * 30);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const deadline = getInstructionDeadline(createdAt);
+  const diff = Math.max(0, deadline.getTime() - now);
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  return (
+    <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 border border-amber-200 px-3 py-1.5 text-[11px] font-semibold text-amber-700">
+      <Clock3 size={12} />
+      Selesaikan pembayaran dalam {hours}j {minutes}m
+    </div>
+  );
+}
+
+function PaymentMethodCard({ method, selected, onSelect }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(method.id)}
+      className={`rounded-2xl border-2 p-4 text-left transition-all ${
+        selected ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-zinc-200 hover:border-zinc-300'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-bold text-zinc-900">{method.label}</p>
+          <p className="text-xs text-zinc-500 mt-1 leading-relaxed">{method.instructions}</p>
+        </div>
+        <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${selected ? 'border-blue-600 bg-blue-600' : 'border-zinc-300'}`}>
+          {selected && <Check size={12} className="text-white" />}
+        </div>
+      </div>
+      {method.accountNumber && (
+        <div className="mt-3 rounded-xl bg-white/80 border border-blue-100 px-3 py-2">
+          <p className="text-[11px] text-zinc-500">Rekening tujuan</p>
+          <p className="text-sm font-bold text-zinc-900">{method.accountNumber}</p>
+          <p className="text-[11px] text-zinc-500">{method.accountName}</p>
         </div>
       )}
+      {method.id === 'qris' && (
+        <div className="mt-3 rounded-xl bg-white/80 border border-blue-100 px-3 py-2 flex items-center gap-2 text-xs text-zinc-600">
+          <QrCode size={14} className="text-blue-600" />
+          QRIS akan tampil di langkah instruksi bayar.
+        </div>
+      )}
+    </button>
+  );
+}
 
-      <div className="flex gap-2">
-        {isSuccess ? (
-          <button
-            onClick={onClose}
-            className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm transition-colors"
-          >
-            Tutup & Kembali ke Dashboard
-          </button>
-        ) : (
-          <>
-            <button
-              onClick={onClose}
-              className="flex-1 py-3 border border-zinc-200 text-zinc-600 rounded-xl hover:bg-zinc-50 text-sm transition-colors"
-            >
-              Tutup
-            </button>
-            <button
-              onClick={onRetry}
-              className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition-colors"
-            >
-              Coba Lagi
-            </button>
-          </>
-        )}
+function ResultNotice({ status, error }) {
+  const isApproved = status === 'approved';
+  const isRejected = status === 'rejected' || status === 'cancelled';
+  const iconClass = isApproved ? 'bg-emerald-100 text-emerald-600' : isRejected ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600';
+
+  return (
+    <div className="text-center">
+      <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 ${iconClass}`}>
+        {isApproved ? <CheckCircle2 size={30} /> : isRejected ? <AlertCircle size={30} /> : <Wallet size={30} />}
       </div>
+      <h3 className="text-lg font-bold text-zinc-900">{getPaymentStatusLabel(status)}</h3>
+      <p className="text-sm text-zinc-500 mt-2 max-w-sm mx-auto leading-relaxed">
+        {isApproved
+          ? 'Pembayaran Anda sudah diverifikasi. Paket Pro akan langsung aktif di akun ini.'
+          : isRejected
+            ? error || 'Permintaan upgrade belum berhasil diproses. Silakan hubungi admin bila perlu.'
+            : 'Transfer sesuai nominal unik, upload bukti pembayaran, lalu admin akan memverifikasi secepatnya.'}
+      </p>
     </div>
   );
 }
 
 export default function UpgradeModal({ user, onClose, onSuccess }) {
-  const [step, setStep] = useState(0);
+  const env = getPaymentEnv();
+  const paymentMethods = useMemo(() => getPaymentMethodOptions(), []);
+  const [view, setView] = useState(0);
+  const [step, setStep] = useState(1);
   const [cycle, setCycle] = useState('yearly');
+  const [customerName, setCustomerName] = useState(user.user_metadata?.full_name || user.email?.split('@')[0] || '');
+  const [paymentMethod, setPaymentMethod] = useState('bank_bca');
   const [paymentNotes, setPaymentNotes] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [proofLoading, setProofLoading] = useState(false);
   const [error, setError] = useState('');
-  const [paymentState, setPaymentState] = useState('idle');
-  const [paymentStatus, setPaymentStatus] = useState('');
-  const [activeOrderId, setActiveOrderId] = useState('');
+  const [status, setStatus] = useState('pending');
+  const [requestData, setRequestData] = useState(null);
+  const [proofFileName, setProofFileName] = useState('');
+  const [copied, setCopied] = useState('');
+  const [qrisFailed, setQrisFailed] = useState(false);
   const pollingRef = useRef(null);
 
   const price = useMemo(() => getEffectivePrice('pro', cycle), [cycle]);
+  const paymentMeta = useMemo(() => getPaymentMethodMeta(paymentMethod), [paymentMethod]);
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -318,43 +370,48 @@ export default function UpgradeModal({ user, onClose, onSuccess }) {
   };
 
   const startPolling = (orderId) => {
+    if (!orderId) return;
     stopPolling();
-    setActiveOrderId(orderId);
 
     const poll = async () => {
       try {
         const row = await getUpgradeRequestByOrderId(user.id, orderId);
         if (!row) return;
 
-        const latestStatus = row.transaction_status || row.status;
-        setPaymentStatus(latestStatus);
+        const latestStatus = row.transaction_status || row.status || 'pending';
+        setStatus(latestStatus);
+        setRequestData((current) => (current ? { ...current, createdAt: row.created_at, proofUrl: row.payment_proof_url || current.proofUrl } : current));
 
-        if (['settlement', 'capture'].includes(row.transaction_status) || row.status === 'approved') {
+        if (latestStatus === 'approved') {
           stopPolling();
-          setPaymentState('success');
           await onSuccess?.();
           return;
         }
 
-        if (['deny', 'expire', 'cancel', 'failure'].includes(row.transaction_status) || ['rejected', 'cancelled'].includes(row.status)) {
+        if (['rejected', 'cancelled'].includes(latestStatus)) {
           stopPolling();
-          setPaymentState('failed');
-          setError(`Status terakhir: ${getMidtransStatusLabel(row.transaction_status || row.status)}`);
         }
       } catch (pollError) {
-        console.error('[midtrans-poll]', pollError);
+        console.error('[manual-payment-poll]', pollError);
       }
     };
 
     poll();
-    pollingRef.current = window.setInterval(poll, 3000);
-    window.setTimeout(() => {
-      if (pollingRef.current) stopPolling();
-    }, 90000);
+    pollingRef.current = window.setInterval(poll, 5000);
   };
 
-  const handleCheckout = async () => {
-    setLoading(true);
+  const copyText = async (value, key) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(key);
+      window.setTimeout(() => setCopied(''), 1600);
+    } catch {
+      setCopied('');
+    }
+  };
+
+  const handleCreateCheckout = async () => {
+    setCheckoutLoading(true);
     setError('');
 
     try {
@@ -362,66 +419,81 @@ export default function UpgradeModal({ user, onClose, onSuccess }) {
       const accessToken = sessionResult.data.session?.access_token;
       if (!accessToken) throw new Error('Sesi login tidak ditemukan. Silakan login ulang.');
 
-      const customerDetails = {
-        first_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Pelanggan',
-        email: user.email,
-        phone: user.user_metadata?.phone_number || '',
-      };
-
-      const transaction = await createMidtransTransaction({
-        accessToken,
-        planId: 'pro',
-        billingCycle: cycle,
-        customerDetails,
-        paymentNotes,
+      const response = await fetch('/api/manual-upgrade-request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          planId: 'pro',
+          billingCycle: cycle,
+          customerName,
+          paymentMethod,
+          paymentNotes,
+        }),
       });
 
-      const snap = await loadMidtransSnapScript();
-      if (!snap) throw new Error('Midtrans Snap gagal dimuat');
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Gagal membuat instruksi pembayaran.');
 
-      setPaymentState('awaiting');
-      setPaymentStatus('pending');
-      setStep(2);
-      startPolling(transaction.orderId);
-
-      snap.pay(transaction.token, {
-        onSuccess: (result) => {
-          setPaymentState('awaiting');
-          setPaymentStatus(result.transaction_status || 'settlement');
-          startPolling(transaction.orderId);
-        },
-        onPending: (result) => {
-          setPaymentState('awaiting');
-          setPaymentStatus(result.transaction_status || 'pending');
-          startPolling(transaction.orderId);
-        },
-        onError: (result) => {
-          stopPolling();
-          setPaymentState('failed');
-          setPaymentStatus(result?.transaction_status || 'failure');
-          setError(result?.status_message || 'Midtrans mengembalikan error saat memproses transaksi.');
-        },
-        onClose: () => {
-          setPaymentState((current) => (current === 'success' ? current : 'failed'));
-          setError((current) => current || 'Popup pembayaran ditutup sebelum transaksi selesai.');
-        },
+      setRequestData({
+        ...payload,
+        proofUrl: '',
       });
+      setStatus('pending');
+      setView(1);
+      setStep(3);
+      startPolling(payload.orderId);
     } catch (checkoutError) {
-      setError(checkoutError.message || 'Gagal memulai pembayaran');
-      setPaymentState('failed');
-      setStep(2);
+      setError(checkoutError.message || 'Gagal memulai checkout manual.');
     } finally {
-      setLoading(false);
+      setCheckoutLoading(false);
+    }
+  };
+
+  const handleUploadProof = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !requestData?.requestId) return;
+
+    setProofLoading(true);
+    setError('');
+
+    try {
+      const publicUrl = await uploadPaymentProof(user.id, requestData.requestId, file);
+      setProofFileName(file.name);
+      setRequestData((current) => ({ ...current, proofUrl: publicUrl }));
+      setStatus('manual_review');
+    } catch (uploadError) {
+      setError(uploadError.message || 'Gagal upload bukti pembayaran.');
+    } finally {
+      setProofLoading(false);
+      event.target.value = '';
     }
   };
 
   const handleRetry = () => {
-    setError('');
-    setPaymentState('idle');
-    setPaymentStatus('');
-    setActiveOrderId('');
+    stopPolling();
+    setView(0);
     setStep(1);
+    setError('');
+    setStatus('pending');
+    setRequestData(null);
+    setProofFileName('');
+    setQrisFailed(false);
   };
+
+  const waLink = requestData
+    ? buildWhatsAppPaymentText({
+        adminWhatsApp: env.adminWhatsApp,
+        customerName: customerName || user.email,
+        planName: PLANS.pro.name,
+        billingCycleLabel: cycle === 'yearly' ? 'Tahunan' : 'Bulanan',
+        amount: requestData.amountToPay,
+        orderId: requestData.orderId,
+        paymentMethod,
+      })
+    : '#';
 
   return (
     <motion.div
@@ -437,13 +509,16 @@ export default function UpgradeModal({ user, onClose, onSuccess }) {
         exit={{ scale: 0.95, opacity: 0 }}
         transition={{ duration: 0.2 }}
         className={`bg-white rounded-2xl shadow-2xl w-full overflow-hidden flex flex-col ${
-          step === 0 ? 'max-w-4xl max-h-[92vh]' : 'max-w-lg max-h-[92vh]'
+          view === 0 ? 'max-w-4xl max-h-[92vh]' : 'max-w-3xl max-h-[92vh]'
         }`}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 shrink-0">
-          <h2 className="font-bold text-zinc-900 text-sm">
-            {step === 0 ? 'Pilih Paket naikcetak' : 'Checkout Midtrans Snap'}
-          </h2>
+          <div className="space-y-2">
+            <h2 className="font-bold text-zinc-900 text-sm">
+              {view === 0 ? 'Pilih Paket naikcetak' : 'Checkout Pembayaran Manual'}
+            </h2>
+            {view === 1 && <StepIndicator currentStep={step} />}
+          </div>
           <button
             onClick={onClose}
             className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors"
@@ -452,115 +527,328 @@ export default function UpgradeModal({ user, onClose, onSuccess }) {
           </button>
         </div>
 
-        <div className={`overflow-y-auto flex-1 ${step > 0 ? 'p-6' : ''}`}>
-          {step === 0 && (
-            <ComparisonView cycle={cycle} onCycleChange={setCycle} onUpgrade={() => setStep(1)} />
+        <div className={`overflow-y-auto flex-1 ${view === 1 ? 'p-6' : ''}`}>
+          {view === 0 && (
+            <ComparisonView cycle={cycle} onCycleChange={setCycle} onUpgrade={() => { setView(1); setStep(1); }} />
           )}
 
-          {step === 1 && (
-            <div className="space-y-5">
-              <p className="text-sm text-zinc-500">
-                Pilih siklus pembayaran untuk paket <strong>Pro</strong>, lalu lanjutkan checkout otomatis dengan Midtrans Snap.
-              </p>
+          {view === 1 && (
+            <div className="space-y-6">
+              {step === 1 && (
+                <>
+                  <div className="grid gap-5 md:grid-cols-[1.2fr_0.8fr]">
+                    <div className="space-y-5">
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-700 mb-1.5">Nama pemesan</label>
+                        <input
+                          type="text"
+                          value={customerName}
+                          onChange={(event) => setCustomerName(event.target.value)}
+                          placeholder="Nama lengkap atau nama usaha"
+                          className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                        />
+                      </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { value: 'monthly', label: 'Bulanan', note: '' },
-                  { value: 'yearly', label: 'Tahunan', note: 'Hemat 47%' },
-                ].map(({ value, label, note }) => {
-                  const displayPrice = value === 'yearly' ? PLANS.pro.prices.yearlyPerMonth : PLANS.pro.prices.monthly;
-                  const totalPrice = value === 'yearly' ? PLANS.pro.prices.yearly : null;
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-700 mb-1.5">Email akun</label>
+                        <input
+                          type="email"
+                          value={user.email || ''}
+                          disabled
+                          className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-sm bg-zinc-50 text-zinc-500"
+                        />
+                      </div>
 
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setCycle(value)}
-                      className={`text-left rounded-xl border-2 p-4 transition-all ${
-                        cycle === value ? 'border-blue-500 bg-blue-50' : 'border-zinc-200 hover:border-zinc-300'
-                      }`}
-                    >
-                      <p className="text-sm font-semibold text-zinc-800">{label}</p>
-                      <p className="text-xl font-black text-zinc-900 mt-1">
-                        Rp {displayPrice.toLocaleString('id-ID')}
-                      </p>
-                      <p className="text-xs text-zinc-400">/bulan</p>
-                      {totalPrice && (
-                        <p className="text-[11px] text-zinc-400 mt-0.5">
-                          (Rp {totalPrice.toLocaleString('id-ID')}/tahun)
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-700 mb-2">Siklus pembayaran</label>
+                        <div className="grid grid-cols-2 gap-3">
+                          {[
+                            { value: 'monthly', label: 'Bulanan', note: 'Rp 149.000 / bulan' },
+                            { value: 'yearly', label: 'Tahunan', note: 'Rp 948.000 / tahun' },
+                          ].map(({ value, label, note }) => (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() => setCycle(value)}
+                              className={`rounded-2xl border-2 p-4 text-left transition-all ${
+                                cycle === value ? 'border-blue-500 bg-blue-50' : 'border-zinc-200 hover:border-zinc-300'
+                              }`}
+                            >
+                              <p className="text-sm font-bold text-zinc-900">{label}</p>
+                              <p className="text-xs text-zinc-500 mt-1">{note}</p>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5 space-y-4">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Ringkasan</p>
+                        <p className="text-2xl font-black text-zinc-900 mt-2">
+                          Rp {price.toLocaleString('id-ID')}
                         </p>
-                      )}
-                      {note && (
-                        <span className="mt-2 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full inline-block">
-                          {note}
-                        </span>
-                      )}
+                        <p className="text-xs text-zinc-500 mt-1">
+                          {cycle === 'yearly' ? 'Tagihan tahunan dibayar sekali di awal.' : 'Tagihan bulanan untuk 30 hari akses Pro.'}
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl bg-white border border-zinc-200 px-4 py-3 text-sm text-zinc-600 leading-relaxed">
+                        Setelah langkah berikutnya, sistem akan membuat nominal unik 3 digit untuk memudahkan verifikasi transfer BCA, Mandiri, atau QRIS.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setView(0)}
+                      className="px-4 py-2.5 border border-zinc-200 rounded-xl text-sm text-zinc-600 hover:bg-zinc-50 transition-colors"
+                    >
+                      Kembali
                     </button>
-                  );
-                })}
-              </div>
+                    <button
+                      onClick={() => setStep(2)}
+                      disabled={!customerName.trim()}
+                      className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold rounded-xl text-sm transition-colors"
+                    >
+                      Lanjut ke Pembayaran
+                    </button>
+                  </div>
+                </>
+              )}
 
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-2">Ringkasan checkout</p>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-600">Paket Pro · {cycle === 'yearly' ? 'Tahunan' : 'Bulanan'}</span>
-                  <span className="font-black text-zinc-900">Rp {price.toLocaleString('id-ID')}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm mt-2">
-                  <span className="text-zinc-600">Gateway</span>
-                  <span className="font-semibold text-zinc-900">Midtrans Snap</span>
-                </div>
-              </div>
+              {step === 2 && (
+                <>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm text-zinc-500">
+                        Pilih metode pembayaran manual yang paling nyaman. Nominal akhir akan ditambah kode unik 3 digit setelah checkout dibuat.
+                      </p>
+                    </div>
 
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1.5">Catatan invoice (opsional)</label>
-                <textarea
-                  className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                  rows={2}
-                  placeholder="Misal: nama perusahaan atau catatan internal..."
-                  value={paymentNotes}
-                  onChange={(event) => setPaymentNotes(event.target.value)}
-                />
-              </div>
+                    <div className="grid gap-3 md:grid-cols-3">
+                      {paymentMethods.map((method) => (
+                        <PaymentMethodCard
+                          key={method.id}
+                          method={method}
+                          selected={paymentMethod === method.id}
+                          onSelect={setPaymentMethod}
+                        />
+                      ))}
+                    </div>
 
-              {error && <p className="text-sm text-red-500">{error}</p>}
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 mb-1.5">Catatan pembayaran (opsional)</label>
+                      <textarea
+                        className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                        rows={3}
+                        placeholder="Misal: nama perusahaan, kebutuhan invoice, atau catatan untuk admin..."
+                        value={paymentNotes}
+                        onChange={(event) => setPaymentNotes(event.target.value)}
+                      />
+                    </div>
 
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setStep(0)}
-                  className="px-4 py-2.5 border border-zinc-200 rounded-xl text-sm text-zinc-600 hover:bg-zinc-50 transition-colors"
-                >
-                  Kembali
-                </button>
-                <button
-                  onClick={handleCheckout}
-                  disabled={loading}
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
-                >
-                  {loading && <Loader2 size={14} className="animate-spin" />}
-                  Bayar Sekarang
-                </button>
-              </div>
+                    <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                      <div className="flex items-center justify-between gap-3 text-sm">
+                        <span className="text-zinc-600">Paket Pro · {cycle === 'yearly' ? 'Tahunan' : 'Bulanan'}</span>
+                        <span className="font-black text-zinc-900">Rp {price.toLocaleString('id-ID')}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 text-sm mt-2">
+                        <span className="text-zinc-600">Metode bayar</span>
+                        <span className="font-semibold text-zinc-900">{paymentMeta.label}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {error && <p className="text-sm text-red-500">{error}</p>}
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setStep(1)}
+                      className="px-4 py-2.5 border border-zinc-200 rounded-xl text-sm text-zinc-600 hover:bg-zinc-50 transition-colors"
+                    >
+                      Kembali
+                    </button>
+                    <button
+                      onClick={handleCreateCheckout}
+                      disabled={checkoutLoading}
+                      className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+                    >
+                      {checkoutLoading && <Loader2 size={14} className="animate-spin" />}
+                      Buat Instruksi Bayar
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {step === 3 && requestData && (
+                <>
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <ResultNotice status={status} error={error} />
+                    <InstructionDeadline createdAt={requestData.createdAt} />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <PaymentStatusBadge status={status} />
+                    <span className="text-xs text-zinc-400 font-mono">Order ID: {requestData.orderId}</span>
+                  </div>
+
+                  <div className="grid gap-5 md:grid-cols-[1.1fr_0.9fr]">
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-blue-100 bg-blue-50 p-5">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Nominal yang harus dibayar</p>
+                        <p className="text-3xl font-black text-zinc-900 mt-2">
+                          Rp {Number(requestData.amountToPay || 0).toLocaleString('id-ID')}
+                        </p>
+                        <p className="text-xs text-zinc-500 mt-2">
+                          Harga paket Rp {Number(requestData.baseAmount || 0).toLocaleString('id-ID')} + kode unik {formatUniqueCode(requestData.uniqueCode)}.
+                        </p>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => copyText(String(requestData.amountToPay), 'amount')}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-zinc-700 border border-blue-100 hover:bg-blue-100 transition-colors"
+                          >
+                            <Copy size={12} />
+                            {copied === 'amount' ? 'Nominal tersalin' : 'Salin nominal'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => copyText(requestData.orderId, 'order')}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-zinc-700 border border-blue-100 hover:bg-blue-100 transition-colors"
+                          >
+                            <Copy size={12} />
+                            {copied === 'order' ? 'Order ID tersalin' : 'Salin Order ID'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {paymentMethod !== 'qris' ? (
+                        <div className="rounded-2xl border border-zinc-200 p-5">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-3">Tujuan transfer</p>
+                          <div className="space-y-2">
+                            <div>
+                              <p className="text-sm font-bold text-zinc-900">{paymentMeta.label}</p>
+                              <p className="text-sm text-zinc-600">{paymentMeta.accountNumber}</p>
+                              <p className="text-xs text-zinc-500">{paymentMeta.accountName}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => copyText(paymentMeta.accountNumber, 'account')}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
+                            >
+                              <Copy size={12} />
+                              {copied === 'account' ? 'Rekening tersalin' : 'Salin nomor rekening'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="rounded-2xl border border-zinc-200 p-5">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-3">Scan QRIS</p>
+                          {!qrisFailed ? (
+                            <img
+                              src={env.qrisImage}
+                              alt="QRIS NaikCetak"
+                              className="w-full max-w-xs rounded-2xl border border-zinc-200 bg-white"
+                              onError={() => setQrisFailed(true)}
+                            />
+                          ) : (
+                            <div className="w-full max-w-xs rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-5 text-sm text-zinc-500">
+                              File QRIS belum tersedia di <span className="font-mono">{env.qrisImage}</span>. Tambahkan gambar QRIS agar pelanggan bisa scan langsung dari checkout.
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="rounded-2xl border border-zinc-200 p-5 space-y-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Langkah selanjutnya</p>
+                        <ol className="space-y-2 text-sm text-zinc-600">
+                          <li>1. Bayar sesuai nominal unik di atas.</li>
+                          <li>2. Upload bukti transfer atau screenshot pembayaran.</li>
+                          <li>3. Klik WhatsApp admin bila ingin konfirmasi lebih cepat.</li>
+                          <li>4. Tunggu status berubah menjadi aktif setelah diverifikasi.</li>
+                        </ol>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-zinc-200 p-5">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-3">Upload bukti pembayaran</p>
+                        <label className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-zinc-300 bg-zinc-50 px-4 py-8 text-center cursor-pointer hover:border-blue-300 hover:bg-blue-50 transition-colors">
+                          <UploadCloud size={22} className="text-blue-600" />
+                          <div>
+                            <p className="text-sm font-semibold text-zinc-800">
+                              {proofLoading ? 'Mengunggah bukti...' : 'Pilih file bukti transfer'}
+                            </p>
+                            <p className="text-xs text-zinc-500 mt-1">JPG, PNG, atau PDF dari mobile banking / e-wallet Anda.</p>
+                          </div>
+                          <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleUploadProof} />
+                        </label>
+                        {(proofFileName || requestData.proofUrl) && (
+                          <div className="mt-3 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-700">
+                            Bukti tersimpan{proofFileName ? `: ${proofFileName}` : '. Admin sekarang bisa meninjau pembayaran Anda.'}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="rounded-2xl border border-zinc-200 p-5">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-3">Konfirmasi cepat ke admin</p>
+                        <a
+                          href={waLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 text-sm transition-colors"
+                        >
+                          <MessageCircle size={15} />
+                          Buka WhatsApp Admin
+                        </a>
+                        <p className="text-xs text-zinc-500 mt-3 leading-relaxed">
+                          Template pesan otomatis sudah menyertakan nama, paket, metode pembayaran, nominal, dan Order ID.
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-zinc-200 p-5">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-2">Status saat ini</p>
+                        <p className="text-sm font-bold text-zinc-900">{getPaymentStatusLabel(status)}</p>
+                        <p className="text-xs text-zinc-500 mt-2">
+                          Refresh status berlangsung otomatis selama modal terbuka. Anda juga bisa menutup modal ini dan memantau dari halaman Subscription.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {error && <p className="text-sm text-red-500">{error}</p>}
+
+                  <div className="flex gap-2">
+                    {status === 'approved' ? (
+                      <button
+                        onClick={onClose}
+                        className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm transition-colors"
+                      >
+                        Tutup & Kembali ke Dashboard
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={handleRetry}
+                          className="px-4 py-3 border border-zinc-200 rounded-xl text-sm text-zinc-600 hover:bg-zinc-50 transition-colors"
+                        >
+                          Buat Checkout Baru
+                        </button>
+                        <button
+                          onClick={onClose}
+                          className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition-colors"
+                        >
+                          Tutup
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           )}
-
-          {step === 2 && (
-            <ResultPanel
-              state={paymentState}
-              orderStatus={paymentStatus}
-              orderId={activeOrderId}
-              error={error}
-              onRetry={handleRetry}
-              onClose={onClose}
-            />
-          )}
         </div>
-
-        {activeOrderId && step === 2 && (
-          <div className="px-6 py-3 border-t border-zinc-100 bg-zinc-50 text-[11px] text-zinc-400 font-mono">
-            Order ID: {activeOrderId}
-          </div>
-        )}
       </motion.div>
     </motion.div>
   );

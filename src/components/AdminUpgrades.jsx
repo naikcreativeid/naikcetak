@@ -9,9 +9,9 @@ import {
 import {
   adminGetUpgradeRequests, adminApproveUpgrade, adminRejectUpgrade,
   adminGetAllUsers, adminCreateUser, adminResetUserPassword, adminDirectUpgrade, adminDeleteUser,
-  getSubscriptionStats, adminGetReminderList, adminMarkReminderSent, getPaymentProofAccessUrl,
+  getSubscriptionStats, adminGetReminderList, adminMarkReminderSent, adminSendStarterFollowUpEmails, getPaymentProofAccessUrl,
 } from '../lib/supabase';
-import { getMidtransStatusLabel } from '../lib/midtrans';
+import { getPaymentStatusLabel } from '../lib/payments';
 import { PLANS } from '../lib/plans';
 import { formatRp } from '../lib/masterData';
 import AdminSubscriptionDashboard from './AdminSubscriptionDashboard';
@@ -42,7 +42,7 @@ const TRANSACTION_STATUS_META = {
 };
 
 const PAYMENT_GATEWAY_META = {
-  midtrans: { label: 'Midtrans', bg: 'bg-sky-100', text: 'text-sky-700' },
+  legacy_auto: { label: 'Legacy Auto', bg: 'bg-sky-100', text: 'text-sky-700' },
   manual: { label: 'Manual', bg: 'bg-zinc-100', text: 'text-zinc-600' },
 };
 
@@ -76,8 +76,8 @@ function formatDateTime(dateStr) {
   });
 }
 
-function isAutomatedMidtrans(req) {
-  return (req.payment_gateway ?? 'manual') === 'midtrans' || Boolean(req.order_id);
+function isAutomatedGateway(req) {
+  return Boolean(req.snap_token);
 }
 
 function getTransactionState(req) {
@@ -91,7 +91,6 @@ function getTransactionState(req) {
 function getPaymentMethodLabel(method) {
   if (!method) return 'â€”';
   return method
-    .replace(/^midtrans_/i, '')
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
@@ -324,9 +323,9 @@ function RequestRow({ req, adminEmail, onApproved, onRejected }) {
   const [proofError, setProofError] = useState('');
 
   const plan = PLANS[req.requested_plan];
-  const automatedPayment = isAutomatedMidtrans(req);
+  const automatedPayment = isAutomatedGateway(req);
   const transactionState = getTransactionState(req);
-  const gatewayMeta = PAYMENT_GATEWAY_META[automatedPayment ? 'midtrans' : 'manual'];
+  const gatewayMeta = PAYMENT_GATEWAY_META[automatedPayment ? 'legacy_auto' : 'manual'];
 
   const openProof = async () => {
     if (!req.payment_proof_url) return;
@@ -416,7 +415,7 @@ function RequestRow({ req, adminEmail, onApproved, onRejected }) {
             </p>
             <p>Submit: {formatDateTime(req.submitted_at)}</p>
             {req.paid_at && <p className="text-emerald-600">Paid: {formatDateTime(req.paid_at)}</p>}
-            {req.webhook_received_at && <p>Webhook: {formatDateTime(req.webhook_received_at)}</p>}
+            {req.webhook_received_at && <p>Verified: {formatDateTime(req.webhook_received_at)}</p>}
           </div>
         </td>
         <td className="px-4 py-3"><StatusBadge status={req.status} /></td>
@@ -437,7 +436,7 @@ function RequestRow({ req, adminEmail, onApproved, onRejected }) {
             <div className="space-y-1.5">
               <div className="text-[11px] text-zinc-500">
                 <p className="font-semibold text-sky-700">Diproses otomatis</p>
-                <p>{getMidtransStatusLabel(req.transaction_status || 'pending')}</p>
+                <p>{getPaymentStatusLabel(req.transaction_status || 'pending')}</p>
               </div>
               <button onClick={() => setShowReject(true)}
                 className="flex items-center gap-1 text-[11px] font-bold bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded-md transition-colors">
@@ -553,6 +552,8 @@ function RemindersTab({ user }) {
   const [reminders, setReminders] = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [sent,      setSent]      = useState(new Set());
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailPreview, setEmailPreview] = useState(null);
 
   const fetch = useCallback(async () => {
     setLoading(true);
@@ -568,6 +569,29 @@ function RemindersTab({ user }) {
       await adminMarkReminderSent(r.user_id, r.reminder_type);
       setSent(prev => new Set([...prev, `${r.user_id}:${r.reminder_type}`]));
     } catch (err) { alert('Gagal: ' + err.message); }
+  };
+
+  const handlePreviewEmails = async () => {
+    try {
+      const result = await adminSendStarterFollowUpEmails({ dryRun: true, limit: 20 });
+      setEmailPreview(result);
+    } catch (err) {
+      alert('Preview email gagal: ' + err.message);
+    }
+  };
+
+  const handleSendEmails = async () => {
+    if (!confirm('Kirim follow-up email ke user Starter yang belum pernah dikontak?')) return;
+    setEmailSending(true);
+    try {
+      const result = await adminSendStarterFollowUpEmails({ dryRun: false, limit: 20 });
+      alert(`Follow-up email terkirim ke ${result.sentCount ?? 0} user.`);
+      setEmailPreview(null);
+    } catch (err) {
+      alert('Kirim email gagal: ' + err.message);
+    } finally {
+      setEmailSending(false);
+    }
   };
 
   const PLAN_COLOR = { starter: '#6B7280', pro: '#2563EB', business: '#D97706' };
@@ -620,12 +644,30 @@ function RemindersTab({ user }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-sm text-zinc-500">{reminders.length} user perlu dihubungi</p>
-        <button onClick={fetch} disabled={loading} className="btn-ghost flex items-center gap-1.5 text-sm">
-          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={handlePreviewEmails} className="btn-ghost text-sm">
+            Preview Email Starter
+          </button>
+          <button
+            onClick={handleSendEmails}
+            disabled={emailSending}
+            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-colors"
+          >
+            {emailSending && <Loader2 size={13} className="animate-spin" />}
+            Kirim Email Starter
+          </button>
+          <button onClick={fetch} disabled={loading} className="btn-ghost flex items-center gap-1.5 text-sm">
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
+        </div>
       </div>
+      {emailPreview && (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          Preview email siap untuk <strong>{emailPreview.candidateCount ?? 0} user</strong>.
+        </div>
+      )}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
