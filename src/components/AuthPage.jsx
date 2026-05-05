@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, User, Scissors, Printer, ArrowLeft, Gift } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Scissors, Printer, ArrowLeft, Gift, Phone } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { handleAuthError, AUTH_CODE } from '../lib/authErrors';
 import { getStoredReferralCode } from '../lib/referral';
@@ -262,9 +262,24 @@ function LoginForm({ onSwitch, onSuccess }) {
 }
 
 // ── Register form ─────────────────────────────────────────────────────────────
+function normalizePhoneInput(raw) {
+  const digits = (raw ?? '').toString().replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('62')) return digits;
+  if (digits.startsWith('0'))  return `62${digits.slice(1)}`;
+  if (digits.startsWith('8'))  return `62${digits}`;
+  return digits;
+}
+
+function isValidPhoneInput(raw) {
+  const normalized = normalizePhoneInput(raw);
+  return normalized.startsWith('62') && normalized.length >= 10 && normalized.length <= 15;
+}
+
 function RegisterForm({ onSwitch, onSuccess }) {
   const [name,     setName]     = useState('');
   const [email,    setEmail]    = useState('');
+  const [phone,    setPhone]    = useState('');
   const [password, setPassword] = useState('');
   const [confirm,  setConfirm]  = useState('');
   const [showPw,   setShowPw]   = useState(false);
@@ -281,6 +296,8 @@ function RegisterForm({ onSwitch, onSuccess }) {
     const e = {};
     if (!name.trim())                                    e.name    = 'Nama lengkap wajib diisi.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))      e.email   = 'Format email tidak valid.';
+    if (!phone.trim())                                   e.phone   = 'Nomor WhatsApp wajib diisi.';
+    else if (!isValidPhoneInput(phone))                  e.phone   = 'Format nomor WhatsApp tidak valid. Contoh: 081234567890';
     if (password.length < 8)                             e.password= 'Password minimal 8 karakter.';
     if (password !== confirm)                            e.confirm = 'Password tidak sama.';
     if (!agree)                                          e.agree   = 'Setujui syarat & ketentuan terlebih dahulu.';
@@ -300,10 +317,11 @@ function RegisterForm({ onSwitch, onSuccess }) {
     }
 
     try {
+      const normalizedPhone = normalizePhoneInput(phone);
       console.log('[Register] Mencoba daftar:', email);
       const { data, error: err } = await supabase.auth.signUp({
         email, password,
-        options: { data: { full_name: name } },
+        options: { data: { full_name: name, phone_number: normalizedPhone } },
       });
       console.log('[Register] Response:', { user: data?.user?.id, session: !!data?.session, error: err?.message });
 
@@ -318,6 +336,25 @@ function RegisterForm({ onSwitch, onSuccess }) {
         // Email confirmation ON — user dibuat tapi belum dapat session
         setErrors({ general: 'Akun berhasil dibuat! Cek email Anda untuk konfirmasi sebelum login.' });
       } else {
+        // Persist phone_number ke user_profiles agar siap dipakai untuk reminder WA.
+        // Best-effort: jangan blokir flow kalau gagal (RLS / network).
+        try {
+          const userId = data?.user?.id;
+          if (userId) {
+            await supabase.from('user_profiles').upsert({
+              id: userId,
+              email,
+              full_name: name,
+              phone_number: normalizedPhone,
+              plan: 'starter',
+              plan_status: 'active',
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'id' });
+          }
+        } catch (profileErr) {
+          console.warn('[Register] gagal simpan phone_number ke user_profiles:', profileErr);
+        }
+
         try {
           const accessToken = data?.session?.access_token;
           const userId = data?.user?.id;
@@ -386,6 +423,15 @@ function RegisterForm({ onSwitch, onSuccess }) {
           <Input type="email" placeholder="email@percetakan.com" icon={Mail}
             value={email} onChange={e => setEmail(e.target.value)} required disabled={loading}
             error={errors.email} />
+        </Field>
+
+        <Field label="Nomor WhatsApp Aktif" error={errors.phone}>
+          <Input type="tel" placeholder="0812xxxxxxxx" icon={Phone} inputMode="numeric"
+            value={phone} onChange={e => setPhone(e.target.value)} required disabled={loading}
+            error={errors.phone} />
+          <p className="text-[11px] text-zinc-400 mt-1">
+            Dipakai untuk reminder pembayaran &amp; notifikasi penting. Tidak untuk spam.
+          </p>
         </Field>
 
         <div>

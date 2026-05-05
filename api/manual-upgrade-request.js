@@ -12,6 +12,11 @@ import {
   getManualPaymentConfig,
   normalizeManualPaymentMethod,
 } from './_lib/manual-payment.js';
+import { sendWhatsAppMany } from './_lib/fonnte.js';
+import {
+  tplUpgradeRequestReceived,
+  tplAdminNotifNewUpgrade,
+} from './_lib/whatsapp-templates.js';
 
 function normalizeCustomerName(user, customerName) {
   return (
@@ -89,6 +94,58 @@ export default async function handler(req, res) {
         console.warn('[manual-upgrade-request] failed to mark profile pending_payment:', profileUpdateError.message);
       }
     }
+
+    // Best-effort kirim WA — non-blocking, jangan gagalkan request kalau Fonnte error.
+    (async () => {
+      try {
+        let userPhone = '';
+        if (supabaseAdmin) {
+          const { data: profile } = await supabaseAdmin
+            .from('user_profiles')
+            .select('phone_number')
+            .eq('id', user.id)
+            .maybeSingle();
+          userPhone = profile?.phone_number ?? '';
+        }
+
+        const messages = [];
+        if (userPhone) {
+          messages.push({
+            target: userPhone,
+            message: tplUpgradeRequestReceived({
+              customerName,
+              planId,
+              billingCycle,
+              amount: amountToPay,
+              orderId,
+              appUrl: manualConfig.appUrl,
+            }),
+          });
+        }
+
+        if (manualConfig.adminWhatsApp) {
+          messages.push({
+            target: manualConfig.adminWhatsApp,
+            message: tplAdminNotifNewUpgrade({
+              customerName,
+              customerEmail: user.email,
+              planId,
+              billingCycle,
+              amount: amountToPay,
+              orderId,
+              paymentMethod,
+              appUrl: manualConfig.appUrl,
+            }),
+          });
+        }
+
+        if (messages.length > 0) {
+          await sendWhatsAppMany(messages);
+        }
+      } catch (waErr) {
+        console.warn('[manual-upgrade-request] WA notify failed (ignored):', waErr?.message ?? waErr);
+      }
+    })();
 
     sendJson(res, 200, {
       requestId: requestRow.id,

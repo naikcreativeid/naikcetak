@@ -10,8 +10,27 @@ import {
   adminGetUpgradeRequests, adminApproveUpgrade, adminRejectUpgrade,
   adminGetAllUsers, adminCreateUser, adminResetUserPassword, adminDirectUpgrade, adminDeleteUser,
   getSubscriptionStats, adminGetReminderList, adminMarkReminderSent, adminSendStarterFollowUpEmails, getPaymentProofAccessUrl,
-  isPaymentProofStorageRef,
+  isPaymentProofStorageRef, supabase,
 } from '../lib/supabase';
+
+async function notifyUpgradeDecision({ requestId, decision, reason, expiresAt }) {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+    if (!accessToken) return;
+
+    await fetch('/api/notify-upgrade-decision', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ requestId, decision, reason, expiresAt }),
+    });
+  } catch (err) {
+    console.warn('[AdminUpgrades] notify-upgrade-decision skipped:', err?.message ?? err);
+  }
+}
 import { getPaymentStatusLabel } from '../lib/payments';
 import { PLANS } from '../lib/plans';
 import { formatRp } from '../lib/masterData';
@@ -169,6 +188,8 @@ function RejectModal({ req, adminEmail, onDone, onCancel }) {
     setLoading(true);
     try {
       await adminRejectUpgrade(req.id, adminEmail, reason);
+      // Auto-kirim WA via Fonnte (non-blocking).
+      notifyUpgradeDecision({ requestId: req.id, decision: 'rejected', reason });
       onDone(req.id, reason);
     } catch (err) {
       alert('Gagal: ' + err.message);
@@ -360,6 +381,8 @@ function RequestRow({ req, adminEmail, onApproved, onRejected }) {
       const expiresAt = result?.expires_at;
       setApprovedAt(expiresAt);
       onApproved(req.id, expiresAt);
+      // Auto-kirim WA via Fonnte (non-blocking, fallback ke wa.me link manual).
+      notifyUpgradeDecision({ requestId: req.id, decision: 'approved', expiresAt });
       window.open(waApproveLink(req, expiresAt), '_blank');
     } catch (err) {
       alert('Gagal approve: ' + err.message);
