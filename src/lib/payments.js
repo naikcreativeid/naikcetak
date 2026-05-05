@@ -35,19 +35,43 @@ const PAYMENT_STATUS_META = {
   cancelled: { label: 'Dibatalkan', bg: 'bg-zinc-100', text: 'text-zinc-600', dot: 'bg-zinc-400' },
 };
 
+// Fallback hardcoded supaya rekening & logo tetap tampil di production walau
+// VITE_BCA_NO_REK / VITE_MANDIRI_NO_REK belum di-set di Vercel env vars.
+const PAYMENT_FALLBACK = {
+  bca: {
+    accountNumber: '2740238623',
+    accountName: 'Dwi Retno Dinda Ramdhiani',
+    logo: '/images/banks/bca.png',
+  },
+  mandiri: {
+    accountNumber: '1610017114047',
+    accountName: 'Dwi Retno Dinda Ramdhiani',
+    logo: '/images/banks/mandiri.png',
+  },
+  adminWhatsApp: '6282261039601',
+  qrisImage: '/images/qris/qris-naikcetak.png',
+};
+
+function pick(envValue, fallback) {
+  const v = (envValue ?? '').toString().trim();
+  return v || fallback;
+}
+
 export function getPaymentEnv() {
   return {
     bca: {
-      accountNumber: import.meta.env.VITE_BCA_NO_REK ?? '',
-      accountName: import.meta.env.VITE_BCA_ATAS_NAMA ?? '',
+      accountNumber: pick(import.meta.env.VITE_BCA_NO_REK, PAYMENT_FALLBACK.bca.accountNumber),
+      accountName: pick(import.meta.env.VITE_BCA_ATAS_NAMA, PAYMENT_FALLBACK.bca.accountName),
+      logo: PAYMENT_FALLBACK.bca.logo,
     },
     mandiri: {
-      accountNumber: import.meta.env.VITE_MANDIRI_NO_REK ?? '',
-      accountName: import.meta.env.VITE_MANDIRI_ATAS_NAMA ?? '',
+      accountNumber: pick(import.meta.env.VITE_MANDIRI_NO_REK, PAYMENT_FALLBACK.mandiri.accountNumber),
+      accountName: pick(import.meta.env.VITE_MANDIRI_ATAS_NAMA, PAYMENT_FALLBACK.mandiri.accountName),
+      logo: PAYMENT_FALLBACK.mandiri.logo,
     },
-    adminWhatsApp: import.meta.env.VITE_ADMIN_WA ?? '6282261039601',
-    qrisImage: import.meta.env.VITE_QRIS_IMAGE ?? '/images/qris/qris-naikcetak.png',
-    appUrl: import.meta.env.VITE_APP_URL ?? window.location.origin,
+    adminWhatsApp: pick(import.meta.env.VITE_ADMIN_WA, PAYMENT_FALLBACK.adminWhatsApp),
+    qrisImage: pick(import.meta.env.VITE_QRIS_IMAGE, PAYMENT_FALLBACK.qrisImage),
+    appUrl: pick(import.meta.env.VITE_APP_URL, typeof window !== 'undefined' ? window.location.origin : ''),
   };
 }
 
@@ -59,12 +83,14 @@ export function getPaymentMethodOptions() {
       ...PAYMENT_METHODS.bank_bca,
       accountNumber: env.bca.accountNumber,
       accountName: env.bca.accountName,
+      logo: env.bca.logo,
       instructions: 'Transfer sesuai nominal unik agar admin lebih mudah verifikasi otomatis.',
     },
     {
       ...PAYMENT_METHODS.bank_mandiri,
       accountNumber: env.mandiri.accountNumber,
       accountName: env.mandiri.accountName,
+      logo: env.mandiri.logo,
       instructions: 'Gunakan rekening Mandiri jika lebih nyaman untuk transfer antarbank Anda.',
     },
     {

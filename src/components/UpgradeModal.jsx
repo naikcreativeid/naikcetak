@@ -280,11 +280,21 @@ function PaymentMethodCard({ method, selected, onSelect }) {
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-bold text-zinc-900">{method.label}</p>
-          <p className="text-xs text-zinc-500 mt-1 leading-relaxed">{method.instructions}</p>
+        <div className="flex items-start gap-3">
+          {method.logo && (
+            <img
+              src={method.logo}
+              alt={method.shortLabel}
+              className="h-7 w-12 object-contain shrink-0 mt-0.5"
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+          )}
+          <div>
+            <p className="text-sm font-bold text-zinc-900">{method.label}</p>
+            <p className="text-xs text-zinc-500 mt-1 leading-relaxed">{method.instructions}</p>
+          </div>
         </div>
-        <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${selected ? 'border-blue-600 bg-blue-600' : 'border-zinc-300'}`}>
+        <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${selected ? 'border-blue-600 bg-blue-600' : 'border-zinc-300'}`}>
           {selected && <Check size={12} className="text-white" />}
         </div>
       </div>
@@ -726,20 +736,31 @@ export default function UpgradeModal({ user, onClose, onSuccess }) {
                       {paymentMethod !== 'qris' ? (
                         <div className="rounded-2xl border border-zinc-200 p-5">
                           <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-3">Tujuan transfer</p>
-                          <div className="space-y-2">
-                            <div>
-                              <p className="text-sm font-bold text-zinc-900">{paymentMeta.label}</p>
-                              <p className="text-sm text-zinc-600">{paymentMeta.accountNumber}</p>
-                              <p className="text-xs text-zinc-500">{paymentMeta.accountName}</p>
+                          <div className="flex items-start gap-4">
+                            {paymentMeta.logo && (
+                              <img
+                                src={paymentMeta.logo}
+                                alt={paymentMeta.shortLabel}
+                                className="h-9 w-16 object-contain shrink-0"
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                              />
+                            )}
+                            <div className="space-y-2 flex-1 min-w-0">
+                              <div>
+                                <p className="text-sm font-bold text-zinc-900">{paymentMeta.label}</p>
+                                <p className="text-base font-bold text-zinc-900 font-mono tracking-wide">{paymentMeta.accountNumber || '—'}</p>
+                                <p className="text-xs text-zinc-500">a.n. {paymentMeta.accountName || '—'}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => copyText(paymentMeta.accountNumber, 'account')}
+                                disabled={!paymentMeta.accountNumber}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 transition-colors"
+                              >
+                                <Copy size={12} />
+                                {copied === 'account' ? 'Rekening tersalin' : 'Salin nomor rekening'}
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => copyText(paymentMeta.accountNumber, 'account')}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
-                            >
-                              <Copy size={12} />
-                              {copied === 'account' ? 'Rekening tersalin' : 'Salin nomor rekening'}
-                            </button>
                           </div>
                         </div>
                       ) : (
